@@ -1,2 +1,21 @@
 .env*
 odoo.conf*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs and local Odoo artifacts
+*.log
+filestore/
+
+# Operating system files
+.DS_Store
+Thumbs.db

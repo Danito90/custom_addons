@@ -68,6 +68,17 @@ Claude Code tiene la skill **`modulo-odoo`** (`~/.claude/skills/modulo-odoo/`) c
 - Permisos en `security/ir.access.csv` (formato de Odoo 20, con columna `domain` para filtrar registros).
 - Seguir las guías de `../odoo/skills/` (`odoo-guidelines`, `odoo-security`, `odoo-review`).
 
+## Regla obligatoria: dependencias de Python
+
+Si un módulo usa una librería de Python que no viene con Odoo:
+
+1. Se declara en `external_dependencies` del `__manifest__.py` (`{'python': ['<nombre del import>']}`).
+2. Se lista en `<modulo>/requirements.txt` (paquete de pip y versión).
+3. Se instala en el entorno del proyecto principal antes de instalar el módulo: `..\odoo\.venv\Scripts\python.exe -m pip install -r <modulo>\requirements.txt`.
+4. Se documenta en "Instalación y actualización" del README.
+
+Si no usa librerías externas, no se crea `requirements.txt`. No se instalan paquetes desde hooks del módulo. El detalle está en la skill `modulo-odoo`.
+
 ## Después de cambiar un módulo
 
 1. Actualizar el módulo en la base con `-u <modulo> --stop-after-init` y revisar que el log no tenga `ERROR` ni `WARNING` nuevos.

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="customer_management_assign_salesman_view_form" model="ir.ui.view">
+        <field name="name">customer.management.assign.salesman.form</field>
+        <field name="model">customer.management.assign.salesman</field>
+        <field name="arch" type="xml">
+            <form string="Asignar vendedor">
+                <group>
+                    <field name="user_id" widget="many2one_avatar_user" options="{'no_create': True}"
+                           placeholder="Sin vendedor"/>
+                    <field name="partner_ids" widget="many2many_tags" readonly="1"/>
+                </group>
+                <div class="text-muted">
+                    Si dejás el vendedor vacío, se quita el vendedor de los clientes elegidos.
+                </div>
+                <footer>
+                    <button name="action_assign" string="Asignar" type="object" class="btn-primary"/>
+                    <button string="Cancelar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_customer_management_assign_salesman" model="ir.actions.act_window">
+        <field name="name">Asignar vendedor</field>
+        <field name="res_model">customer.management.assign.salesman</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_view_types">list</field>
+        <field name="group_ids" eval="[(4, ref('account.group_account_invoice')), (4, ref('sales_team.group_sale_manager'))]"/>
+    </record>
+</odoo>

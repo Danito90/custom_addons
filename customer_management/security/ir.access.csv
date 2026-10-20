@@ -1,0 +1,3 @@
+id,name,model_id,group_id/id,operation,domain
+access_customer_management_assign_salesman_invoice,customer.management.assign.salesman invoice,customer.management.assign.salesman,account.group_account_invoice,crud,
+access_customer_management_assign_salesman_manager,customer.management.assign.salesman manager,customer.management.assign.salesman,sales_team.group_sale_manager,crud,

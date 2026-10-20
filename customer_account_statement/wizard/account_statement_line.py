@@ -1,5 +1,5 @@
 from odoo import fields, models
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import AccessError
 
 
 class CustomerAccountStatementLine(models.TransientModel):
@@ -34,13 +34,6 @@ class CustomerAccountStatementLine(models.TransientModel):
     amount_residual = fields.Monetary(string='Pendiente')
     days_overdue = fields.Integer(string='Días de atraso')
     is_reconciled = fields.Boolean(string='Imputado totalmente')
-
-    def _get_context_statement(self):
-        statement = self.statement_id[:1] or self.env['customer.account.statement'].browse(
-            self.env.context.get('active_statement_id')).exists()
-        if not statement:
-            raise UserError(self.env._('El estado de cuenta ya no existe. Volvé a consultarlo.'))
-        return statement
 
     def action_open_document(self):
         self.ensure_one()
@@ -92,9 +85,3 @@ class CustomerAccountStatementLine(models.TransientModel):
                 'default_statement_id': self.statement_id.id,
             },
         }
-
-    def action_print_statement(self):
-        return self._get_context_statement()._action_print_report()
-
-    def action_send_statement(self):
-        return self._get_context_statement()._action_send_mail()

@@ -1,6 +1,6 @@
 # SPEC 02 — App Clientes y estado de cuenta multiempresa
 
-> **Estado:** Borrador
+> **Estado:** Aprobado
 > **Depende de:** SPEC 01
 > **Fecha:** 2026-10-20
 > **Objetivo:** Una app "Clientes" (módulo `customer_management`) que reúne listado y asignación de vendedores, estado de cuenta, comprobantes y visitas, con un estado de cuenta que muestra todas las empresas del cliente y se filtra por casillas que recalculan al instante.

@@ -1,7 +1,7 @@
 import base64
 from collections import defaultdict
 
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError
 
 MODES = [
@@ -30,13 +30,20 @@ class CustomerAccountStatement(models.TransientModel):
         'res.company', string='Empresas permitidas', compute='_compute_allowed_company_ids')
     company_ids = fields.Many2many(
         'res.company', 'customer_account_statement_company_rel', 'statement_id', 'company_id',
-        string='Empresas', required=True,
+        string='Empresas',
         compute='_compute_company_ids', store=True, readonly=False, precompute=True)
     is_consolidated = fields.Boolean(string='Consolidado', compute='_compute_is_consolidated')
     date_from = fields.Date(string='Desde')
     date_to = fields.Date(string='Hasta', required=True, default=fields.Date.today)
     mode = fields.Selection(MODES, string='Modo', default='movements', required=True)
-    line_ids = fields.One2many('customer.account.statement.line', 'statement_id', string='Líneas')
+    # Se activa al consultar: evita calcular líneas mientras se completa el asistente previo.
+    is_result = fields.Boolean(string='Consultado')
+    line_ids = fields.One2many(
+        'customer.account.statement.line', 'statement_id', string='Líneas',
+        compute='_compute_statement', store=True, readonly=True)
+    currency_total_ids = fields.One2many(
+        'customer.account.statement.currency', 'statement_id', string='Saldos por moneda',
+        compute='_compute_statement', store=True, readonly=True)
 
     @api.depends('partner_id')
     def _compute_allowed_company_ids(self):
@@ -54,15 +61,29 @@ class CustomerAccountStatement(models.TransientModel):
             current = statement.company_ids._origin
             if current and current <= allowed:
                 continue
-            if self.env.company in allowed:
-                statement.company_ids = self.env.company
-            else:
-                statement.company_ids = allowed[:1]
+            statement.company_ids = allowed
 
     @api.depends('company_ids')
     def _compute_is_consolidated(self):
         for statement in self:
             statement.is_consolidated = len(statement.company_ids) > 1
+
+    @api.depends('is_result', 'partner_id', 'company_ids', 'mode', 'date_from', 'date_to')
+    def _compute_statement(self):
+        for statement in self:
+            line_vals = statement._prepare_lines()
+            total_vals = statement._prepare_currency_totals(line_vals)
+            statement.line_ids = [Command.clear()] + [Command.create(vals) for vals in line_vals]
+            statement.currency_total_ids = (
+                [Command.clear()] + [Command.create(vals) for vals in total_vals])
+
+    @api.onchange('mode', 'date_from', 'date_to')
+    def _onchange_dates_warning(self):
+        if self.mode == 'movements' and self.date_from and self.date_to and self.date_from > self.date_to:
+            return {'warning': {
+                'title': self.env._('Fechas inválidas'),
+                'message': self.env._('La fecha "Desde" no puede ser posterior a "Hasta".'),
+            }}
 
     # -------------------------------------------------------------------------
     # Controles
@@ -83,8 +104,11 @@ class CustomerAccountStatement(models.TransientModel):
     def _check_statement(self):
         self.ensure_one()
         self._check_partner_access(self.partner_id)
+        if not self.allowed_company_ids:
+            raise UserError(self.env._(
+                'El cliente no participa en ninguna de las empresas que tenés habilitadas.'))
         if not self.company_ids:
-            raise UserError(self.env._('Elegí al menos una empresa.'))
+            raise UserError(self.env._('Tildá al menos una empresa.'))
         if not self.company_ids._origin <= self.allowed_company_ids._origin:
             raise UserError(self.env._(
                 'El cliente no participa en alguna de las empresas elegidas, '
@@ -96,10 +120,14 @@ class CustomerAccountStatement(models.TransientModel):
     # Cálculo de líneas
     # -------------------------------------------------------------------------
 
-    def _get_base_domain(self):
+    def _get_statement_companies(self):
+        """ Empresas tildadas que siguen permitidas. _origin: en pantalla los x2many traen NewId. """
+        return self.company_ids._origin & self.allowed_company_ids._origin
+
+    def _get_base_domain(self, companies):
         return [
-            ('partner_id', 'child_of', self.partner_id.commercial_partner_id.id),
-            ('company_id', 'in', self.company_ids.ids),
+            ('partner_id', 'child_of', self.partner_id._origin.commercial_partner_id.id),
+            ('company_id', 'in', companies.ids),
             ('account_id.account_type', '=', 'asset_receivable'),
             ('parent_state', '=', 'posted'),
         ]
@@ -116,7 +144,6 @@ class CustomerAccountStatement(models.TransientModel):
         company_currency = aml.company_currency_id
         foreign = aml.currency_id != company_currency
         return {
-            'statement_id': self.id,
             'line_type': 'move',
             'company_id': aml.company_id.id,
             'currency_id': company_currency.id,
@@ -135,18 +162,17 @@ class CustomerAccountStatement(models.TransientModel):
             'is_reconciled': aml.reconciled,
         }
 
-    def _prepare_movements_lines(self, AccountMoveLine):
-        domain = self._get_base_domain()
+    def _prepare_movements_lines(self, AccountMoveLine, companies):
+        domain = self._get_base_domain(companies)
         balance_by_currency = defaultdict(float)
         vals_list = []
         if self.date_from:
             for company, balance in AccountMoveLine._read_group(
                     domain + [('date', '<', self.date_from)], ['company_id'], ['balance:sum']):
                 balance_by_currency[company.currency_id] += balance
-            for currency in self.company_ids.currency_id:
+            for currency in companies.currency_id:
                 initial = currency.round(balance_by_currency[currency])
                 vals_list.append({
-                    'statement_id': self.id,
                     'line_type': 'initial',
                     'currency_id': currency.id,
                     'name': 'Saldo inicial',
@@ -178,10 +204,10 @@ class CustomerAccountStatement(models.TransientModel):
             residual -= sum(later.mapped('amount'))
         return aml.company_currency_id.round(residual)
 
-    def _prepare_pending_lines(self, AccountMoveLine):
+    def _prepare_pending_lines(self, AccountMoveLine, companies):
         vals_list = []
         amls = AccountMoveLine.search(
-            self._get_base_domain() + [('date', '<=', self.date_to)],
+            self._get_base_domain(companies) + [('date', '<=', self.date_to)],
             order='date_maturity, date, move_name, id')
         for aml in amls:
             residual = self._get_residual_at_date(aml)
@@ -196,20 +222,58 @@ class CustomerAccountStatement(models.TransientModel):
             vals_list.append(vals)
         return vals_list
 
-    def _generate_lines(self):
+    def _prepare_lines(self):
+        """ Valores de las líneas. Vacío si todavía no se consultó o faltan datos. """
         self.ensure_one()
-        self._check_statement()
-        # El acceso ya se validó en _check_statement: se lee con sudo para no depender
-        # de los permisos contables del usuario (vendedores) ni de las empresas activas.
+        companies = self._get_statement_companies()
+        if not (self.is_result and self.partner_id and companies and self.date_to):
+            return []
+        if self.mode == 'movements' and self.date_from and self.date_from > self.date_to:
+            return []
+        # is_result solo se activa desde _generate_lines, después de _check_statement: el acceso
+        # ya se validó. Se lee con sudo para no depender de los permisos contables del usuario
+        # (vendedores) ni de las empresas activas.
         AccountMoveLine = self.env['account.move.line'].sudo()
         if self.mode == 'pending':
-            vals_list = self._prepare_pending_lines(AccountMoveLine)
+            vals_list = self._prepare_pending_lines(AccountMoveLine, companies)
         else:
-            vals_list = self._prepare_movements_lines(AccountMoveLine)
+            vals_list = self._prepare_movements_lines(AccountMoveLine, companies)
         for sequence, vals in enumerate(vals_list):
             vals['sequence'] = sequence
-        self.line_ids.unlink()
-        self.env['customer.account.statement.line'].create(vals_list)
+        return vals_list
+
+    @api.model
+    def _prepare_currency_totals(self, line_vals):
+        totals = {}
+        for vals in line_vals:
+            total = totals.setdefault(vals['currency_id'], {
+                'currency_id': vals['currency_id'],
+                'initial_balance': 0.0,
+                'debit': 0.0,
+                'credit': 0.0,
+                'final_balance': 0.0,
+                'amount_residual': 0.0,
+            })
+            if vals['line_type'] == 'initial':
+                total['initial_balance'] += vals['balance']
+            else:
+                total['debit'] += vals['debit']
+                total['credit'] += vals['credit']
+            total['final_balance'] += vals['balance']
+            total['amount_residual'] += vals.get('amount_residual', 0.0)
+        currencies = self.env['res.currency'].browse(totals).sorted('name')
+        return [totals[currency.id] for currency in currencies]
+
+    def _generate_lines(self):
+        """ Valida y (re)calcula líneas y totales con los datos actuales de la base. """
+        self.ensure_one()
+        self._check_statement()
+        if not self.is_result:
+            self.is_result = True
+        else:
+            for fname in ('line_ids', 'currency_total_ids'):
+                self.env.add_to_compute(self._fields[fname], self)
+        self.line_ids  # dispara el cálculo pendiente
 
     # -------------------------------------------------------------------------
     # Datos del reporte
@@ -241,17 +305,11 @@ class CustomerAccountStatement(models.TransientModel):
         return {
             'type': 'ir.actions.act_window',
             'name': self.env._('Estado de cuenta: %s', partner.display_name),
-            'res_model': 'customer.account.statement.line',
-            'view_mode': 'list',
+            'res_model': self._name,
+            'res_id': self.id,
+            'view_mode': 'form',
             'views': [(self.env.ref(
-                'customer_account_statement.customer_account_statement_line_view_list').id, 'list')],
-            'domain': [('statement_id', '=', self.id)],
-            'context': {
-                'active_statement_id': self.id,
-                'statement_mode': self.mode,
-                'statement_consolidated': self.is_consolidated,
-                'group_by': ['currency_id'] if self.is_consolidated else [],
-            },
+                'customer_account_statement.customer_account_statement_view_form_result').id, 'form')],
             'target': 'current',
         }
 

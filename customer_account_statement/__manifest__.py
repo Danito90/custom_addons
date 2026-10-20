@@ -1,6 +1,6 @@
 {
     'name': 'Estado de cuenta de clientes',
-    'version': '1.0',
+    'version': '1.1',
     'category': 'Accounting',
     'summary': 'Consultá, imprimí, enviá e imputá la cuenta corriente de tus clientes',
     'description': """
@@ -16,7 +16,6 @@ imputación de recibos y notas de crédito, resumen en PDF y envío por email.
         'report/account_statement_report.xml',
         'report/account_statement_templates.xml',
         'wizard/account_statement_wizard_views.xml',
-        'wizard/account_statement_line_views.xml',
         'wizard/account_statement_reconcile_views.xml',
         'views/account_partial_reconcile_views.xml',
         'views/res_partner_views.xml',

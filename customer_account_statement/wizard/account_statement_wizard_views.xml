@@ -8,11 +8,6 @@
                 <group>
                     <group>
                         <field name="partner_id" options="{'no_create': True}"/>
-                        <field name="allowed_company_ids" invisible="1"/>
-                        <field name="is_consolidated" invisible="1"/>
-                        <field name="company_ids" widget="many2many_tags"
-                               options="{'no_create': True}"
-                               domain="[('id', 'in', allowed_company_ids)]"/>
                     </group>
                     <group>
                         <field name="mode" widget="radio"/>
@@ -20,8 +15,9 @@
                         <field name="date_to"/>
                     </group>
                 </group>
-                <div class="text-muted" invisible="not is_consolidated">
-                    Con varias empresas se muestra el consolidado, separado por moneda.
+                <div class="text-muted">
+                    Se incluyen todas las empresas en las que participa el cliente.
+                    Después de consultar podés elegir cuáles mostrar.
                 </div>
                 <footer>
                     <button name="action_view" string="Consultar" type="object" class="btn-primary"/>
@@ -34,10 +30,99 @@
         </field>
     </record>
 
+    <record id="customer_account_statement_view_form_result" model="ir.ui.view">
+        <field name="name">customer.account.statement.form.result</field>
+        <field name="model">customer.account.statement</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <form string="Estado de cuenta" create="0" delete="0" duplicate="0">
+                <header>
+                    <button name="action_print" string="Imprimir" type="object" class="btn-primary"
+                            invisible="not company_ids"/>
+                    <button name="action_send" string="Enviar por email" type="object" class="btn-secondary"
+                            invisible="not company_ids" groups="account.group_account_invoice"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="partner_id" readonly="1"/></h1>
+                    </div>
+                    <field name="allowed_company_ids" invisible="1"/>
+                    <field name="is_consolidated" invisible="1"/>
+                    <field name="is_result" invisible="1"/>
+                    <group>
+                        <group>
+                            <field name="company_ids" widget="many2many_checkboxes"
+                                   domain="[('id', 'in', allowed_company_ids)]"/>
+                        </group>
+                        <group>
+                            <field name="mode" widget="radio"/>
+                            <field name="date_from" invisible="mode == 'pending'"/>
+                            <field name="date_to"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-warning" role="alert" invisible="company_ids">
+                        Tildá al menos una empresa para ver los movimientos.
+                    </div>
+                    <!-- force_save: los botones de las líneas guardan primero el formulario; así se
+                         guardan las líneas que se ven en pantalla y no se recalculan otras. -->
+                    <separator string="Saldos por moneda" invisible="not company_ids"/>
+                    <field name="currency_total_ids" nolabel="1" force_save="1" invisible="not company_ids">
+                        <list create="0" delete="0" no_open="1">
+                            <field name="currency_id"/>
+                            <field name="initial_balance" column_invisible="parent.mode == 'pending'"/>
+                            <field name="debit" column_invisible="parent.mode == 'pending'"/>
+                            <field name="credit" column_invisible="parent.mode == 'pending'"/>
+                            <field name="final_balance" column_invisible="parent.mode == 'pending'"/>
+                            <field name="amount_residual" column_invisible="parent.mode != 'pending'"/>
+                        </list>
+                    </field>
+                    <separator string="Movimientos" invisible="not company_ids"/>
+                    <field name="line_ids" nolabel="1" force_save="1" invisible="not company_ids">
+                        <list create="0" delete="0" no_open="1"
+                              decoration-info="line_type == 'initial'"
+                              decoration-danger="days_overdue &gt; 0">
+                            <field name="sequence" column_invisible="True"/>
+                            <field name="line_type" column_invisible="True"/>
+                            <field name="is_reconciled" column_invisible="True"/>
+                            <field name="move_line_id" column_invisible="True"/>
+                            <field name="move_id" column_invisible="True"/>
+                            <field name="payment_id" column_invisible="True"/>
+                            <field name="date"/>
+                            <field name="company_id" column_invisible="not parent.is_consolidated"/>
+                            <field name="document_type"/>
+                            <field name="name"/>
+                            <field name="date_maturity"/>
+                            <field name="currency_id" optional="show"/>
+                            <field name="debit" column_invisible="parent.mode == 'pending'"/>
+                            <field name="credit" column_invisible="parent.mode == 'pending'"/>
+                            <field name="cumulative_balance" column_invisible="parent.mode == 'pending'"/>
+                            <field name="balance" string="Neto (Debe - Haber)"
+                                   column_invisible="parent.mode == 'pending'" optional="hide"/>
+                            <field name="balance" string="Importe original"
+                                   column_invisible="parent.mode != 'pending'"/>
+                            <field name="amount_residual" column_invisible="parent.mode != 'pending'"/>
+                            <field name="days_overdue" column_invisible="parent.mode != 'pending'"/>
+                            <field name="original_currency_id" optional="show"/>
+                            <field name="amount_currency" optional="show" invisible="not original_currency_id"/>
+                            <button name="action_open_document" type="object" string="Abrir comprobante"
+                                    icon="fa-external-link" invisible="line_type != 'move'"/>
+                            <button name="action_view_reconciliations" type="object" string="Imputaciones"
+                                    icon="fa-link" invisible="line_type != 'move'"/>
+                            <button name="action_open_reconcile_wizard" type="object" string="Imputar"
+                                    icon="fa-check-square-o" groups="account.group_account_invoice"
+                                    invisible="line_type != 'move' or not credit or is_reconciled"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <record id="action_customer_account_statement" model="ir.actions.act_window">
         <field name="name">Estado de cuenta</field>
         <field name="res_model">customer.account.statement</field>
         <field name="view_mode">form</field>
+        <field name="view_id" ref="customer_account_statement_view_form"/>
         <field name="target">new</field>
     </record>
 </odoo>

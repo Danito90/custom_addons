@@ -9,7 +9,7 @@ Permite consultar, imprimir, enviar por email e imputar la cuenta corriente de u
 - **Consulta de cuenta corriente** en dos modos:
   - **Movimientos:** saldo inicial (si hay fecha "Desde"), todos los movimientos del período y saldo acumulado línea por línea.
   - **Solo pendientes:** comprobantes con saldo pendiente a la fecha "Hasta", con días de atraso. Los vencidos se resaltan en rojo.
-- **Por empresa o consolidado:** con una empresa se ve su saldo. Con varias, los movimientos se agrupan **por moneda de la empresa** y aparece la columna "Empresa".
+- **Todas las empresas del cliente, con filtro en pantalla:** la consulta abre con todas las empresas en las que participa el cliente. Arriba hay casillas para elegir cuáles mostrar, y al tildar o destildar se recalcula todo al instante. Con varias empresas aparece la columna "Empresa" y los saldos se separan **por moneda de la empresa**.
 - **Detalle de imputaciones:** desde cada línea se ve con qué comprobantes está conciliada, y se puede **desimputar**.
 - **Imputación de créditos:** desde un recibo o una nota de crédito con saldo, se eligen las facturas o notas de débito pendientes a las que se aplica.
 - **Resumen en PDF** (ambos modos) con los datos de la empresa y del cliente.
@@ -28,8 +28,9 @@ Permite consultar, imprimir, enviar por email e imputar la cuenta corriente de u
 
 Modelos nuevos, todos transitorios (no guardan datos de forma permanente):
 
-- `customer.account.statement`: asistente de consulta.
+- `customer.account.statement`: asistente de consulta y pantalla de resultado.
 - `customer.account.statement.line`: líneas calculadas del estado de cuenta.
+- `customer.account.statement.currency`: totales por moneda ("Saldos por moneda").
 - `customer.account.statement.reconcile` y `.reconcile.line`: asistente de imputación.
 
 No crea asientos ni modifica importes. Las imputaciones usan la conciliación estándar de Odoo.
@@ -43,15 +44,26 @@ Se toman los apuntes contables (`account.move.line`) que cumplen todo esto:
 - Cuenta de tipo **A cobrar** (`asset_receivable`).
 - Asiento **publicado**.
 - Partner igual al cliente o a cualquiera de sus contactos hijos (se usa siempre la empresa principal del contacto).
-- Empresa dentro de las elegidas en el asistente.
+- Empresa dentro de las tildadas en el estado de cuenta.
 
 Los importes están en la **moneda de la empresa**. Si el comprobante fue en otra moneda, la moneda y el importe originales se muestran en columnas informativas.
 
-### Qué empresas se pueden elegir
+### Qué empresas se muestran
 
-- Si el cliente **no tiene** empresas cargadas en "Empresas en las que participa", se ofrecen todas las empresas habilitadas del usuario.
-- Si **tiene** empresas cargadas, se ofrecen solo las que están cargadas en el cliente **y** habilitadas para el usuario.
-- Por defecto se elige la empresa activa, si está permitida; si no, la primera permitida.
+Las **empresas permitidas** salen de esta regla:
+
+- Si el cliente **no tiene** empresas cargadas en "Empresas en las que participa", son todas las empresas habilitadas del usuario.
+- Si **tiene** empresas cargadas, son las que están cargadas en el cliente **y** habilitadas para el usuario.
+
+El asistente previo no pide empresas: la consulta abre con **todas las empresas permitidas tildadas**. En la pantalla de resultado, las casillas ofrecen solo las permitidas.
+
+### Recálculo en pantalla
+
+Al cambiar las empresas, el modo o las fechas en la pantalla de resultado, Odoo recalcula al instante el saldo inicial, los movimientos, el saldo acumulado y "Saldos por moneda". Lo mismo pasa al imputar o desimputar.
+
+- Sin ninguna empresa tildada no hay movimientos, se muestra un aviso, y Imprimir o Enviar por email dan error.
+- Si "Desde" es posterior a "Hasta", Odoo avisa y no muestra movimientos.
+- Imprimir y Enviar por email usan las empresas, el modo y las fechas que se ven en pantalla.
 
 ### Pendiente a una fecha
 
@@ -67,15 +79,24 @@ En el modo "Solo pendientes", el saldo se calcula **a la fecha "Hasta"**. Las im
 
 ## Uso
 
-1. **Desde el menú:** Contabilidad / Facturación → Clientes → **Estado de cuenta**.
-   **Desde el cliente:** botón **"Estado de cuenta"** en la ficha.
-2. Elegir cliente, empresas, modo y fechas.
+1. Entrar por cualquiera de estos caminos:
+   - **Menú:** Contabilidad / Facturación → Clientes → **Estado de cuenta**.
+   - **App Clientes:** Clientes → **Estado de cuenta** (si está instalado `customer_management`).
+   - **Ficha del cliente:** botón **"Estado de cuenta"**.
+2. Elegir cliente, modo y fechas.
 3. Usar uno de estos botones:
-   - **Consultar:** abre la lista de líneas, que tiene sus propios botones Imprimir y Enviar por email.
-   - **Imprimir:** descarga el PDF.
+   - **Consultar:** abre la pantalla de resultado.
+   - **Imprimir:** descarga el PDF con todas las empresas permitidas.
    - **Enviar por email:** abre el redactor de correo con el PDF adjunto.
 
-En la lista de líneas, cada movimiento tiene tres botones:
+La pantalla de resultado tiene:
+
+- **Arriba:** casillas de empresas, modo y fechas. Al cambiarlos se recalcula todo.
+- **Cabecera:** botones **Imprimir** y **Enviar por email**.
+- **"Saldos por moneda":** saldo inicial, debe, haber y saldo final de cada moneda (modo Movimientos), o total adeudado (modo Solo pendientes).
+- **"Movimientos":** una línea por comprobante.
+
+Cada movimiento tiene tres botones:
 
 - **Abrir comprobante:** abre la factura, la nota o el pago.
 - **Imputaciones:** muestra con qué comprobantes está conciliado. Desde ahí se puede **desimputar**.
@@ -102,7 +123,7 @@ Ajustes → Usuarios y compañías → Usuarios → elegir el usuario.
 | Perfil | Grupo en Odoo | Qué puede hacer |
 |---|---|---|
 | Facturación / Contabilidad | *Facturación* o superior (`account.group_account_invoice`) | Todo: consultar cualquier cliente, imprimir, enviar, imputar y desimputar. Ve el menú. |
-| Vendedor | *Ventas: Usuario: solo sus documentos* o superior (`sales_team.group_sale_salesman`) | Consultar e imprimir **solo clientes donde figura como vendedor** (campo "Vendedor" del cliente). Entra por el botón de la ficha del cliente; no ve el menú. No puede enviar ni imputar. |
+| Vendedor | *Ventas: Usuario: solo sus documentos* o superior (`sales_team.group_sale_salesman`) | Consultar e imprimir **solo clientes donde figura como vendedor** (campo "Vendedor" del cliente). Entra por el botón de la ficha del cliente o por la app Clientes; no ve el menú de Facturación. No puede enviar ni imputar. |
 
 Para que un vendedor vea el estado de cuenta de un cliente, en la ficha del cliente → **Ventas y compras → Vendedor** tiene que figurar ese usuario.
 
@@ -146,6 +167,8 @@ Definidos en [security/ir.access.csv](security/ir.access.csv) con el modelo `ir.
 | `access_customer_account_statement_salesman` | `customer.account.statement` | Vendedor | CRUD | — | Ídem, para vendedores |
 | `access_customer_account_statement_line_invoice` | `customer.account.statement.line` | Facturación | CRUD | — | Ver y generar las líneas |
 | `access_customer_account_statement_line_salesman` | `customer.account.statement.line` | Vendedor | CRUD | — | Ídem, para vendedores |
+| `access_customer_account_statement_currency_invoice` | `customer.account.statement.currency` | Facturación | CRUD | — | Ver y generar "Saldos por moneda" |
+| `access_customer_account_statement_currency_salesman` | `customer.account.statement.currency` | Vendedor | CRUD | — | Ídem, para vendedores |
 | `access_customer_account_statement_reconcile_invoice` | `customer.account.statement.reconcile` | Facturación | CRUD | — | Asistente de imputación |
 | `access_customer_account_statement_reconcile_line_invoice` | `customer.account.statement.reconcile.line` | Facturación | CRUD | — | Comprobantes del asistente de imputación |
 | `customer_account_statement_move_salesman` | `account.move` | Vendedor | Lectura | `commercial_partner_id.user_id = usuario` | Abrir facturas y notas de sus clientes |
@@ -172,7 +195,7 @@ El cálculo de líneas lee los apuntes con `sudo()` **después** de validar el a
 
 ### Resumen
 
-- **Tablas nuevas:** 6 (1 permanente, 5 temporales).
+- **Tablas nuevas:** 7 (1 permanente, 6 temporales).
 - **Tablas existentes modificadas:** ninguna. El módulo **no agrega columnas** a tablas estándar.
 - **Datos estándar que escribe:** registros en `account_partial_reconcile` (y `account_full_reconcile`, asientos de diferencia de cambio o de caja si corresponde), creados por la conciliación estándar de Odoo al **imputar**. Al **desimputar** se borra el registro de `account_partial_reconcile`.
 
@@ -188,6 +211,9 @@ erDiagram
     res_partner ||--o{ CUSTOMER_ACCOUNT_STATEMENT : "partner_id"
     CUSTOMER_ACCOUNT_STATEMENT ||--o{ CUSTOMER_ACCOUNT_STATEMENT_COMPANY_REL : "company_ids"
     res_company ||--o{ CUSTOMER_ACCOUNT_STATEMENT_COMPANY_REL : "company_id"
+
+    CUSTOMER_ACCOUNT_STATEMENT ||--o{ CUSTOMER_ACCOUNT_STATEMENT_CURRENCY : "currency_total_ids"
+    res_currency ||--o{ CUSTOMER_ACCOUNT_STATEMENT_CURRENCY : "currency_id"
 
     CUSTOMER_ACCOUNT_STATEMENT ||--o{ CUSTOMER_ACCOUNT_STATEMENT_LINE : "line_ids"
     res_company |o--o{ CUSTOMER_ACCOUNT_STATEMENT_LINE : "company_id"
@@ -223,7 +249,7 @@ Clave primaria `(partner_id, company_id)`; índice `(company_id, partner_id)`.
 
 #### `customer_account_statement` — temporal
 
-Cada consulta del asistente (`customer.account.statement`).
+Cada consulta del asistente y su pantalla de resultado (`customer.account.statement`).
 
 | Columna | Tipo | Nulo | Referencia | ON DELETE |
 |---|---|---|---|---|
@@ -232,12 +258,13 @@ Cada consulta del asistente (`customer.account.statement`).
 | `mode` | varchar | no | `movements` / `pending` | — |
 | `date_from` | date | sí | — | — |
 | `date_to` | date | no | — | — |
+| `is_result` | boolean | sí | `True` una vez consultado: recién ahí se calculan líneas y totales | — |
 
-`allowed_company_ids` e `is_consolidated` son calculados y no se guardan.
+`allowed_company_ids` e `is_consolidated` son calculados y no se guardan. `line_ids` y `currency_total_ids` son calculados y se guardan en sus propias tablas.
 
 #### `customer_account_statement_company_rel` — temporal
 
-Empresas elegidas en cada consulta (campo `company_ids` del asistente).
+Empresas tildadas en cada consulta (campo `company_ids`). Por defecto, todas las permitidas.
 
 | Columna | Tipo | Nulo | Referencia | ON DELETE |
 |---|---|---|---|---|
@@ -248,7 +275,7 @@ Clave primaria `(statement_id, company_id)`; índice `(company_id, statement_id)
 
 #### `customer_account_statement_line` — temporal
 
-Líneas calculadas del estado de cuenta. Es una **copia** de los datos al momento de consultar: no se actualiza si después cambia un comprobante.
+Líneas calculadas del estado de cuenta. Es una **copia** de los datos al momento de consultar: se recalcula al cambiar empresas, modo o fechas, al imputar y al desimputar, pero no si un comprobante cambia desde otra pantalla.
 
 | Columna | Tipo | Nulo | Referencia | ON DELETE |
 |---|---|---|---|---|
@@ -270,6 +297,20 @@ Líneas calculadas del estado de cuenta. Es una **copia** de los datos al moment
 | `amount_residual` | numeric | sí | — | — |
 | `days_overdue` | integer | sí | — | — |
 | `is_reconciled` | boolean | sí | — | — |
+
+#### `customer_account_statement_currency` — temporal
+
+Totales por moneda de cada consulta ("Saldos por moneda"). Se calcula junto con las líneas.
+
+| Columna | Tipo | Nulo | Referencia | ON DELETE |
+|---|---|---|---|---|
+| `id` | integer | no | — | — |
+| `statement_id` | integer | no | `customer_account_statement.id` | CASCADE |
+| `currency_id` | integer | no | `res_currency.id` (moneda de la empresa) | CASCADE |
+| `initial_balance` | numeric | sí | — | — |
+| `debit`, `credit` | numeric | sí | — (solo movimientos, sin el saldo inicial) | — |
+| `final_balance` | numeric | sí | — | — |
+| `amount_residual` | numeric | sí | — (total adeudado, modo Solo pendientes) | — |
 
 #### `customer_account_statement_reconcile` — temporal
 
@@ -313,17 +354,17 @@ Se guardan en las tablas estándar de metadatos de Odoo y se identifican en `ir_
 
 | Tabla | Registros |
 |---|---|
-| `ir_access` | 10 (ver [Permisos](#permisos)) |
-| `ir_ui_view` | 7: formulario del asistente, lista de líneas, asistente de imputación, lista de imputaciones, herencia de la ficha de contacto y 2 plantillas QWeb del reporte |
+| `ir_access` | 12 (ver [Permisos](#permisos)) |
+| `ir_ui_view` | 7: asistente previo, pantalla de resultado, asistente de imputación, lista de imputaciones, herencia de la ficha de contacto y 2 plantillas QWeb del reporte |
 | `ir_act_window` | 1: `action_customer_account_statement` |
 | `ir_act_report_xml` | 1: `action_report_customer_account_statement` |
 | `ir_ui_menu` | 1: `menu_customer_account_statement` |
 | `mail_template` | 1: `mail_template_customer_account_statement` (`noupdate`) |
-| `ir_model` / `ir_model_fields` / `ir_model_fields_selection` | 6 / 78 / 4, generados por Odoo a partir de los modelos |
+| `ir_model` / `ir_model_fields` / `ir_model_fields_selection` | 7 / 93 / 4, generados por Odoo a partir de los modelos |
 
 ### Al desinstalar
 
-Se borran las 6 tablas nuevas, incluidas **las empresas cargadas en los clientes**, y todos los registros de configuración. Las conciliaciones creadas al imputar **quedan**: son datos contables estándar.
+Se borran las 7 tablas nuevas, incluidas **las empresas cargadas en los clientes**, y todos los registros de configuración. Las conciliaciones creadas al imputar **quedan**: son datos contables estándar.
 
 ## Instalación y actualización
 
@@ -342,14 +383,22 @@ Si se arranca Odoo sin `..\custom_addons`, el log muestra `module customer_accou
 ## Limitaciones conocidas
 
 - Solo cuentas **a cobrar**. No muestra la cuenta corriente de proveedores.
-- El consolidado **no convierte monedas**: empresas con monedas distintas se muestran en bloques separados.
+- El consolidado **no convierte monedas**: cada moneda tiene su fila en "Saldos por moneda" (y su bloque en el PDF).
+- La lista de movimientos de la pantalla no tiene totales al pie, porque mezclarían monedas. Los totales están en "Saldos por moneda".
+- El recálculo es automático en cada cambio: con clientes de muchísimos movimientos cada casilla puede tardar unos segundos.
 - La imputación es entre comprobantes de la **misma empresa y la misma cuenta**.
 - En moneda extranjera la imputación es por el total posible, no por un importe parcial.
 - Las líneas son temporales: Odoo borra solas las consultas viejas. Para guardar un estado de cuenta, imprimir el PDF o enviarlo.
 
 ## Historial de cambios
 
-### 2026-10-20
+### 2026-10-20 — versión 1.1 ([SPEC 02](../specs/02-app-clientes.md))
+- **Cambio:** el asistente previo ya no pide "Empresas". La consulta abre con todas las empresas permitidas del cliente tildadas.
+  - Base de datos: se actualiza `arch_db` de `customer_account_statement_view_form`. `company_ids` deja de ser obligatorio (no tiene columna: sin cambio de estructura).
+- **Nuevo:** pantalla de resultado (formulario) con casillas de empresas, modo y fechas editables y recálculo automático, cuadro "Saldos por moneda" y lista de movimientos con sus botones. Imprimir y Enviar por email pasan a la cabecera.
+  - Base de datos: tabla nueva `customer_account_statement_currency`; columna nueva `is_result` en `customer_account_statement`; 2 permisos nuevos en `ir_access` (`access_customer_account_statement_currency_invoice` y `_salesman`); vista nueva `customer_account_statement_view_form_result` en `ir_ui_view`; la acción `action_customer_account_statement` fija su vista (`view_id`).
+- **Eliminado:** la lista de líneas como pantalla aparte (`customer_account_statement_line_view_list`) y sus botones Imprimir/Enviar por email.
+  - Base de datos: Odoo borra la vista `customer_account_statement_line_view_list` de `ir_ui_view` al actualizar.
 - **Documentación:** se agrega el requisito del motor de PDF (wkhtmltopdf en el `PATH`) a las configuraciones esenciales.
   - Base de datos: sin cambios.
 - **Cambio:** en la ficha del cliente, "Empresas en las que participa" pasa de etiquetas (`many2many_tags`) a casillas para tildar (`many2many_checkboxes`).

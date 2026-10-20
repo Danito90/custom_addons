@@ -1,6 +1,6 @@
 # SPEC 01 — Estado de cuenta de clientes
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** —
 > **Fecha:** 2026-10-20
 > **Objetivo:** Un módulo `customer_account_statement` que permite consultar, imprimir, enviar e imputar la cuenta corriente de un cliente, por empresa o consolidada.

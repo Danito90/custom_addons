@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.customer.management</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Clientes" string="Clientes" name="customer_management" groups="base.group_system">
+                    <block title="Vendedores" name="customer_management_salesman">
+                        <setting id="customer_management_salesman_own_customers_only"
+                                 string="Vendedores ven solo sus clientes"
+                                 help="En la app Clientes, los vendedores sin permisos de Facturación ni de gerente ven solo los clientes donde son Vendedor, y sus comprobantes y visitas. No afecta al resto de Odoo.">
+                            <field name="salesman_own_customers_only"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_customer_management_settings" model="ir.actions.act_window">
+        <field name="name">Ajustes</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="context">{'module': 'customer_management'}</field>
+    </record>
+</odoo>
