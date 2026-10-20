@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="customer_account_statement_line_view_list" model="ir.ui.view">
+        <field name="name">customer.account.statement.line.list</field>
+        <field name="model">customer.account.statement.line</field>
+        <field name="arch" type="xml">
+            <list string="Estado de cuenta" create="0" edit="0" delete="0" expand="1"
+                  decoration-info="line_type == 'initial'"
+                  decoration-danger="days_overdue &gt; 0">
+                <header>
+                    <button name="action_print_statement" string="Imprimir" type="object" display="always"/>
+                    <button name="action_send_statement" string="Enviar por email" type="object" display="always"
+                            groups="account.group_account_invoice"/>
+                </header>
+                <field name="line_type" column_invisible="True"/>
+                <field name="is_reconciled" column_invisible="True"/>
+                <field name="move_line_id" column_invisible="True"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="date"/>
+                <field name="company_id" column_invisible="not context.get('statement_consolidated')"/>
+                <field name="document_type"/>
+                <field name="name"/>
+                <field name="date_maturity"/>
+                <field name="debit" sum="Total Debe"
+                       column_invisible="context.get('statement_mode') == 'pending'"/>
+                <field name="credit" sum="Total Haber"
+                       column_invisible="context.get('statement_mode') == 'pending'"/>
+                <field name="cumulative_balance"
+                       column_invisible="context.get('statement_mode') == 'pending'"/>
+                <field name="balance" string="Neto (Debe - Haber)" sum="Saldo final"
+                       column_invisible="context.get('statement_mode') == 'pending'"/>
+                <field name="balance" string="Importe original"
+                       column_invisible="context.get('statement_mode') != 'pending'"/>
+                <field name="amount_residual" sum="Total adeudado"
+                       column_invisible="context.get('statement_mode') != 'pending'"/>
+                <field name="days_overdue"
+                       column_invisible="context.get('statement_mode') != 'pending'"/>
+                <field name="original_currency_id" optional="show"/>
+                <field name="amount_currency" optional="show" invisible="not original_currency_id"/>
+                <button name="action_open_document" type="object" string="Abrir comprobante"
+                        icon="fa-external-link" invisible="line_type != 'move'"/>
+                <button name="action_view_reconciliations" type="object" string="Imputaciones"
+                        icon="fa-link" invisible="line_type != 'move'"/>
+                <button name="action_open_reconcile_wizard" type="object" string="Imputar"
+                        icon="fa-check-square-o" groups="account.group_account_invoice"
+                        invisible="line_type != 'move' or not credit or is_reconciled"/>
+            </list>
+        </field>
+    </record>
+</odoo>

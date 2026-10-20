@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="mail_template_customer_account_statement" model="mail.template">
+            <field name="name">Estado de cuenta: envío de resumen al cliente</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="subject">{{ user.company_id.name }} - Resumen de cuenta</field>
+            <field name="email_from">{{ (user.email_formatted or user.company_id.email_formatted or '') }}</field>
+            <field name="partner_to">{{ object.id }}</field>
+            <field name="description">Se usa desde el estado de cuenta para enviar el resumen en PDF.</field>
+            <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px;">
+    <p style="margin: 0px; padding: 0px; font-size: 13px;">
+        Estimado/a <t t-out="object.name or ''">Cliente</t>:
+        <br/><br/>
+        Le enviamos adjunto el resumen de su cuenta corriente.
+        <br/><br/>
+        Ante cualquier consulta, no dude en contactarnos.
+        <br/><br/>
+        Saludos cordiales,
+        <br/>
+        <t t-out="user.name or ''">Usuario</t>
+        <br/>
+        <t t-out="user.company_id.name or ''">Empresa</t>
+    </p>
+</div>
+            </field>
+            <field name="auto_delete" eval="False"/>
+        </record>
+    </data>
+</odoo>

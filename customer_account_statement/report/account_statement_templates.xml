@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_customer_account_statement_document">
+        <t t-set="partner" t-value="doc.partner_id.commercial_partner_id"/>
+        <t t-set="company" t-value="doc.env.company"/>
+        <t t-set="is_pending" t-value="doc.mode == 'pending'"/>
+        <t t-call="web.external_layout">
+            <div class="page">
+                <h2>
+                    Resumen de cuenta
+                    <small t-if="is_pending" class="text-muted">- Comprobantes pendientes</small>
+                </h2>
+                <div class="row mt-3 mb-4">
+                    <div class="col-6">
+                        <strong>Cliente</strong>
+                        <div t-field="partner.name"/>
+                        <div t-if="partner.vat">CUIT: <span t-field="partner.vat"/></div>
+                        <div t-out="partner"
+                             t-options="{'widget': 'contact', 'fields': ['address'], 'no_marker': True}"/>
+                    </div>
+                    <div class="col-6">
+                        <div>
+                            <strong>Empresas: </strong>
+                            <span t-out="', '.join(doc.company_ids.mapped('name'))"/>
+                        </div>
+                        <div t-if="not is_pending">
+                            <strong>Período: </strong>
+                            <span t-if="doc.date_from" t-field="doc.date_from"/>
+                            <span t-else="">Inicio</span>
+                            al <span t-field="doc.date_to"/>
+                        </div>
+                        <div t-else="">
+                            <strong>Pendientes al: </strong><span t-field="doc.date_to"/>
+                        </div>
+                        <div><strong>Modo: </strong><span t-field="doc.mode"/></div>
+                    </div>
+                </div>
+
+                <t t-set="groups" t-value="doc._get_report_groups()"/>
+                <p t-if="not groups">El cliente no tiene movimientos para los filtros elegidos.</p>
+                <t t-foreach="groups" t-as="group">
+                    <t t-set="currency" t-value="group['currency']"/>
+                    <h5 t-if="len(groups) &gt; 1 or doc.is_consolidated" class="mt-4">
+                        Moneda: <span t-out="currency.name"/>
+                    </h5>
+                    <table class="table table-sm o_main_table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th t-if="doc.is_consolidated">Empresa</th>
+                                <th>Tipo</th>
+                                <th>Comprobante</th>
+                                <th>Vencimiento</th>
+                                <t t-if="not is_pending">
+                                    <th class="text-end">Debe</th>
+                                    <th class="text-end">Haber</th>
+                                    <th class="text-end">Saldo</th>
+                                </t>
+                                <t t-else="">
+                                    <th class="text-end">Importe original</th>
+                                    <th class="text-end">Pendiente</th>
+                                    <th class="text-end">Días de atraso</th>
+                                </t>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="group['lines']" t-as="line"
+                                t-att-class="'fw-bold' if line.line_type == 'initial' else None">
+                                <td><span t-field="line.date"/></td>
+                                <td t-if="doc.is_consolidated"><span t-out="line.company_id.name or ''"/></td>
+                                <td><span t-out="line.document_type or ''"/></td>
+                                <td>
+                                    <span t-out="line.name or ''"/>
+                                    <div t-if="line.original_currency_id" class="text-muted small">
+                                        <span t-field="line.amount_currency"
+                                              t-options="{'widget': 'monetary', 'display_currency': line.original_currency_id}"/>
+                                    </div>
+                                </td>
+                                <td><span t-field="line.date_maturity"/></td>
+                                <t t-if="not is_pending">
+                                    <td class="text-end">
+                                        <span t-if="line.debit" t-out="line.debit"
+                                              t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-if="line.credit" t-out="line.credit"
+                                              t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-out="line.cumulative_balance"
+                                              t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                    </td>
+                                </t>
+                                <t t-else="">
+                                    <td class="text-end">
+                                        <span t-out="line.balance"
+                                              t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-out="line.amount_residual"
+                                              t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                    </td>
+                                    <td class="text-end"><span t-out="line.days_overdue"/></td>
+                                </t>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td t-att-colspan="5 if doc.is_consolidated else 4">
+                                    <t t-if="not is_pending">Saldo final</t>
+                                    <t t-else="">Total adeudado</t>
+                                </td>
+                                <t t-if="not is_pending">
+                                    <td class="text-end">
+                                        <span t-out="group['total_debit']"
+                                              t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-out="group['total_credit']"
+                                              t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-out="group['final_balance']"
+                                              t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                    </td>
+                                </t>
+                                <t t-else="">
+                                    <td/>
+                                    <td class="text-end">
+                                        <span t-out="group['total_residual']"
+                                              t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                    </td>
+                                    <td/>
+                                </t>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </t>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_customer_account_statement">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="customer_account_statement.report_customer_account_statement_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

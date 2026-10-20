@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_customer_account_statement"
+              name="Estado de cuenta"
+              parent="account.menu_finance_receivables"
+              action="action_customer_account_statement"
+              groups="account.group_account_invoice"
+              sequence="105"/>
+</odoo>
