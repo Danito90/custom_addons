@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_customer_visit_root"
+              name="Visitas"
+              groups="base.group_user"
+              web_icon="customer_visit,static/description/icon.png"
+              sequence="40"/>
+
+    <menuitem id="menu_customer_visit"
+              name="Visitas"
+              parent="menu_customer_visit_root"
+              action="customer_visit_action"
+              sequence="10"/>
+</odoo>

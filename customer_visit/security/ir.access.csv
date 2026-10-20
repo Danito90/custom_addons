@@ -1,0 +1,2 @@
+id,name,model_id,group_id/id,operation,domain
+access_customer_visit_user,customer.visit.user,customer.visit,base.group_user,crud,
