@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.supplier.management</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Proveedores" string="Proveedores" name="supplier_management" groups="base.group_system">
+                    <block title="Permisos de Compras en el estado de cuenta de proveedores" name="supplier_management_purchase">
+                        <setting id="supplier_management_purchase_can_reconcile"
+                                 string="Compras puede imputar"
+                                 help="Los usuarios de Compras sin Facturación pueden imputar pagos y notas de crédito de proveedor a sus facturas.">
+                            <field name="purchase_can_reconcile"/>
+                        </setting>
+                        <setting id="supplier_management_purchase_can_unreconcile"
+                                 string="Compras puede desimputar"
+                                 help="Los usuarios de Compras sin Facturación pueden deshacer imputaciones de proveedores.">
+                            <field name="purchase_can_unreconcile"/>
+                        </setting>
+                        <setting id="supplier_management_purchase_can_send"
+                                 string="Compras puede enviar el estado de cuenta por email"
+                                 help="Los usuarios de Compras sin Facturación pueden enviarle el resumen de cuenta al proveedor.">
+                            <field name="purchase_can_send"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_supplier_management_settings" model="ir.actions.act_window">
+        <field name="name">Ajustes</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="context">{'module': 'supplier_management'}</field>
+    </record>
+</odoo>

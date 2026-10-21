@@ -5,6 +5,6 @@
         <field name="model">customer.account.statement</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">customer_account_statement.report_customer_account_statement</field>
-        <field name="print_report_name">'Resumen de cuenta - %s - %s' % (object.partner_id.commercial_partner_id.name, object.date_to)</field>
+        <field name="print_report_name">'%s - %s - %s' % ('Resumen de cuenta de proveedor' if object.partner_type == 'supplier' else 'Resumen de cuenta', object.partner_id.commercial_partner_id.name, object.date_to)</field>
     </record>
 </odoo>

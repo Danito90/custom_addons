@@ -1,0 +1,8 @@
+id,name,model_id,group_id/id,operation,domain
+access_supplier_management_statement_purchase,customer.account.statement purchase,customer.account.statement,purchase.group_purchase_user,crud,
+access_supplier_management_statement_line_purchase,customer.account.statement.line purchase,customer.account.statement.line,purchase.group_purchase_user,crud,
+access_supplier_management_statement_currency_purchase,customer.account.statement.currency purchase,customer.account.statement.currency,purchase.group_purchase_user,crud,
+access_supplier_management_statement_reconcile_purchase,customer.account.statement.reconcile purchase,customer.account.statement.reconcile,purchase.group_purchase_user,crud,
+access_supplier_management_statement_reconcile_line_purchase,customer.account.statement.reconcile.line purchase,customer.account.statement.reconcile.line,purchase.group_purchase_user,crud,
+supplier_management_payment_purchase,account.payment purchase supplier,account.payment,purchase.group_purchase_user,r,"[('partner_type', '=', 'supplier')]"
+supplier_management_move_purchase,account.move purchase supplier payment,account.move,purchase.group_purchase_user,r,"[('origin_payment_id.partner_type', '=', 'supplier')]"

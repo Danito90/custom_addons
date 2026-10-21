@@ -6,4 +6,10 @@
               action="action_customer_account_statement"
               groups="account.group_account_invoice"
               sequence="105"/>
+    <menuitem id="menu_supplier_account_statement"
+              name="Estado de cuenta"
+              parent="account.menu_finance_payables"
+              action="action_supplier_account_statement"
+              groups="account.group_account_invoice"
+              sequence="105"/>
 </odoo>

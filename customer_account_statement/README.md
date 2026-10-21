@@ -1,34 +1,39 @@
-# Estado de cuenta de clientes
+# Estado de cuenta de clientes y proveedores
 
 Módulo técnico: `customer_account_statement` · Odoo 20.0 · Dependencias: `account`, `sales_team` · Licencia LGPL-3
 
-Permite consultar, imprimir, enviar por email e imputar la cuenta corriente de un cliente, por empresa o consolidada entre varias empresas del grupo.
+Permite consultar, imprimir, enviar por email e imputar la cuenta corriente de un cliente o de un proveedor, por empresa o consolidada entre varias empresas del grupo.
+
+El nombre técnico conserva `customer_` por compatibilidad: desde la versión 1.2 el mismo estado de cuenta sirve para **clientes** (cuentas a cobrar) y **proveedores** (cuentas a pagar).
 
 ## Qué hace
 
+- **Dos tipos de cuenta:**
+  - **Cliente:** cuentas a cobrar. Es el estado de cuenta de siempre.
+  - **Proveedor:** cuentas a pagar, con las mismas funciones (modos, consolidado, imputación, PDF y email).
 - **Consulta de cuenta corriente** en dos modos:
   - **Movimientos:** saldo inicial (si hay fecha "Desde"), todos los movimientos del período y saldo acumulado línea por línea.
   - **Solo pendientes:** comprobantes con saldo pendiente a la fecha "Hasta", con días de atraso. Los vencidos se resaltan en rojo.
 - **Todas las empresas del cliente, con filtro en pantalla:** la consulta abre con todas las empresas en las que participa el cliente. Arriba hay casillas para elegir cuáles mostrar, y al tildar o destildar se recalcula todo al instante. Con varias empresas aparece la columna "Empresa" y los saldos se separan **por moneda de la empresa**.
 - **Detalle de imputaciones:** desde cada línea se ve con qué comprobantes está conciliada, y se puede **desimputar**.
-- **Imputación de créditos:** desde un recibo o una nota de crédito con saldo, se eligen las facturas o notas de débito pendientes a las que se aplica.
-- **Resumen en PDF** (ambos modos) con los datos de la empresa y del cliente.
-- **Envío por email** del PDF al cliente, con una plantilla editable.
+- **Imputación de créditos:** desde un recibo, un pago o una nota de crédito con saldo, se eligen las facturas o notas de débito pendientes a las que se aplica.
+- **Resumen en PDF** (ambos modos) con los datos de la empresa y del cliente o proveedor.
+- **Envío por email** del PDF al cliente o proveedor, con una plantilla editable para cada uno.
 
 ## Qué agrega o modifica en Odoo
 
 | Dónde | Cambio |
 |---|---|
-| Contacto (`res.partner`) | Campo nuevo **"Empresas en las que participa"** (`company_ids`) en la pestaña *Ventas y compras → Varios*. Botón **"Estado de cuenta"** arriba de la ficha. |
-| Conciliaciones (`account.partial.reconcile`) | Campos calculados de contraparte y botón **"Desimputar"**, usados en la lista de imputaciones. No cambia el comportamiento estándar. |
-| Menú | **Contabilidad / Facturación → Clientes → Estado de cuenta**. |
-| Reporte | **"Resumen de cuenta"** (PDF QWeb). |
-| Plantilla de email | **"Estado de cuenta: envío de resumen al cliente"**. |
+| Contacto (`res.partner`) | Campo nuevo **"Empresas en las que participa"** (`company_ids`) en la pestaña *Ventas y compras → Varios*. Botones **"Estado de cuenta"** (cliente) y **"Cuenta proveedor"** (solo si el contacto es proveedor, `supplier_rank > 0`) arriba de la ficha. |
+| Conciliaciones (`account.partial.reconcile`) | Campos calculados de contraparte y de permiso, y botón **"Desimputar"**, usados en la lista de imputaciones. No cambia el comportamiento estándar. |
+| Menú | **Contabilidad / Facturación → Clientes → Estado de cuenta** y **Contabilidad / Facturación → Proveedores → Estado de cuenta**. |
+| Reporte | **"Resumen de cuenta"** (PDF QWeb). En proveedores se titula **"Resumen de cuenta de proveedor"**. |
+| Plantillas de email | **"Estado de cuenta: envío de resumen al cliente"** y **"Estado de cuenta: envío de resumen al proveedor"**. |
 | Permisos | Acceso de lectura para **vendedores** a asientos, apuntes, pagos y conciliaciones **de sus propios clientes** (ver [Permisos](#permisos)). |
 
 Modelos nuevos, todos transitorios (no guardan datos de forma permanente):
 
-- `customer.account.statement`: asistente de consulta y pantalla de resultado.
+- `customer.account.statement`: asistente de consulta y pantalla de resultado. El campo `partner_type` (Cliente / Proveedor) elige la cuenta.
 - `customer.account.statement.line`: líneas calculadas del estado de cuenta.
 - `customer.account.statement.currency`: totales por moneda ("Saldos por moneda").
 - `customer.account.statement.reconcile` y `.reconcile.line`: asistente de imputación.
@@ -41,12 +46,23 @@ No crea asientos ni modifica importes. Las imputaciones usan la conciliación es
 
 Se toman los apuntes contables (`account.move.line`) que cumplen todo esto:
 
-- Cuenta de tipo **A cobrar** (`asset_receivable`).
+- Cuenta de tipo **A cobrar** (`asset_receivable`) en clientes, o **A pagar** (`liability_payable`) en proveedores.
 - Asiento **publicado**.
-- Partner igual al cliente o a cualquiera de sus contactos hijos (se usa siempre la empresa principal del contacto).
+- Partner igual al cliente/proveedor o a cualquiera de sus contactos hijos (se usa siempre la empresa principal del contacto).
 - Empresa dentro de las tildadas en el estado de cuenta.
 
+Un contacto que es cliente y proveedor tiene dos cuentas separadas: "Estado de cuenta" muestra solo lo a cobrar y "Cuenta proveedor" solo lo a pagar.
+
 Los importes están en la **moneda de la empresa**. Si el comprobante fue en otra moneda, la moneda y el importe originales se muestran en columnas informativas.
+
+### Signo del saldo
+
+En los dos tipos el saldo es **contable: Debe − Haber**.
+
+- **Cliente:** positivo = el cliente debe. Facturas y ND van al Debe; recibos y NC, al Haber.
+- **Proveedor:** **negativo = se le debe al proveedor**. Las facturas y ND del proveedor van al Haber; los pagos y las NC, al Debe. Un saldo positivo es un saldo a favor (anticipos o NC sin aplicar).
+
+En proveedores, los pagos se muestran con tipo **"Pago"** (en clientes, "Recibo"). En el modo Solo pendientes, los días de atraso de un proveedor se cuentan solo en facturas y ND (pendiente negativo); los pagos y NC con saldo muestran 0.
 
 ### Qué empresas se muestran
 
@@ -71,19 +87,29 @@ En el modo "Solo pendientes", el saldo se calcula **a la fecha "Hasta"**. Las im
 
 ### Imputación
 
-- Botón **"Imputar"** en líneas de crédito (recibos, notas de crédito) que todavía tienen saldo.
-- Lista las facturas y notas de débito pendientes del mismo cliente, **misma empresa y misma cuenta**, ordenadas por vencimiento.
+- Botón **"Imputar"** en las líneas que todavía tienen saldo y pueden cancelar comprobantes:
+  - **Cliente:** recibos y notas de crédito (saldo acreedor).
+  - **Proveedor:** pagos y notas de crédito del proveedor (saldo deudor).
+- Lista las facturas y notas de débito pendientes del mismo cliente/proveedor, **misma empresa y misma cuenta**, ordenadas por vencimiento. Los importes se muestran en valor absoluto.
 - Se marcan los comprobantes. Para cada uno se propone el menor importe entre su pendiente y lo que queda disponible del crédito.
 - **Importe parcial editable** solo si el crédito y la factura están en la moneda de la empresa. En otra moneda se imputa por el total posible.
+- Antes de imputar se valida que el crédito y cada comprobante sean del mismo cliente/proveedor, empresa y cuenta, estén publicados y tengan el signo esperado.
 - Al terminar, el estado de cuenta se recalcula solo.
+
+El importe parcial se arma con el método interno de Odoo `_prepare_reconciliation_single_partial`, limitando el pendiente del comprobante destino al importe pedido (en proveedores, el destino es el apunte acreedor).
 
 ## Uso
 
 1. Entrar por cualquiera de estos caminos:
-   - **Menú:** Contabilidad / Facturación → Clientes → **Estado de cuenta**.
-   - **App Clientes:** Clientes → **Estado de cuenta** (si está instalado `customer_management`).
-   - **Ficha del cliente:** botón **"Estado de cuenta"**.
-2. Elegir cliente, modo y fechas.
+   - **Clientes:**
+     - Menú Contabilidad / Facturación → Clientes → **Estado de cuenta**.
+     - App Clientes → **Estado de cuenta** (si está instalado `customer_management`).
+     - Ficha del cliente → botón **"Estado de cuenta"**.
+   - **Proveedores:**
+     - Menú Contabilidad / Facturación → Proveedores → **Estado de cuenta**.
+     - App Proveedores → **Estado de cuenta** (si está instalado `supplier_management`).
+     - Ficha del proveedor → botón **"Cuenta proveedor"**.
+2. Elegir cliente o proveedor, modo y fechas.
 3. Usar uno de estos botones:
    - **Consultar:** abre la pantalla de resultado.
    - **Imprimir:** descarga el PDF con todas las empresas permitidas.
@@ -93,14 +119,14 @@ La pantalla de resultado tiene:
 
 - **Arriba:** casillas de empresas, modo y fechas. Al cambiarlos se recalcula todo.
 - **Cabecera:** botones **Imprimir** y **Enviar por email**.
-- **"Saldos por moneda":** saldo inicial, debe, haber y saldo final de cada moneda (modo Movimientos), o total adeudado (modo Solo pendientes).
+- **"Saldos por moneda":** saldo inicial, debe, haber y saldo final de cada moneda (modo Movimientos), o total adeudado / total pendiente en proveedores (modo Solo pendientes).
 - **"Movimientos":** una línea por comprobante.
 
 Cada movimiento tiene tres botones:
 
 - **Abrir comprobante:** abre la factura, la nota o el pago.
 - **Imputaciones:** muestra con qué comprobantes está conciliado. Desde ahí se puede **desimputar**.
-- **Imputar:** solo en créditos con saldo.
+- **Imputar:** solo en créditos con saldo (recibos, pagos o NC) y si el usuario tiene permiso.
 
 ## Configuraciones esenciales
 
@@ -123,7 +149,8 @@ Ajustes → Usuarios y compañías → Usuarios → elegir el usuario.
 | Perfil | Grupo en Odoo | Qué puede hacer |
 |---|---|---|
 | Facturación / Contabilidad | *Facturación* o superior (`account.group_account_invoice`) | Todo: consultar cualquier cliente, imprimir, enviar, imputar y desimputar. Ve el menú. |
-| Vendedor | *Ventas: Usuario: solo sus documentos* o superior (`sales_team.group_sale_salesman`) | Consultar e imprimir **solo clientes donde figura como vendedor** (campo "Vendedor" del cliente). Entra por el botón de la ficha del cliente o por la app Clientes; no ve el menú de Facturación. No puede enviar ni imputar. |
+| Vendedor | *Ventas: Usuario: solo sus documentos* o superior (`sales_team.group_sale_salesman`) | Consultar e imprimir **solo clientes donde figura como vendedor** (campo "Vendedor" del cliente). Entra por el botón de la ficha del cliente o por la app Clientes; no ve el menú de Facturación. No puede enviar ni imputar. No accede a cuentas de proveedores. |
+| Compras | *Compras: Usuario* (`purchase.group_purchase_user`), con `supplier_management` instalado | Consultar e imprimir la cuenta de **todos los proveedores**. Imputar, desimputar y enviar según los ajustes de la app Proveedores. Lo agrega `supplier_management`, no este módulo. |
 
 Para que un vendedor vea el estado de cuenta de un cliente, en la ficha del cliente → **Ventas y compras → Vendedor** tiene que figurar ese usuario.
 
@@ -131,13 +158,18 @@ Para que un vendedor vea el estado de cuenta de un cliente, en la ficha del clie
 
 Solo se pueden consultar empresas que el usuario tiene en **Empresas permitidas** (en la ficha del usuario). Para un consolidado, el usuario tiene que tener habilitadas todas las empresas que quiere sumar.
 
-### 4. Plantilla de email
+### 4. Plantillas de email
 
-Ajustes → Técnico → Email → Plantillas → **"Estado de cuenta: envío de resumen al cliente"** (requiere el modo desarrollador).
+Ajustes → Técnico → Email → Plantillas (requiere el modo desarrollador):
+
+- **"Estado de cuenta: envío de resumen al cliente"**.
+- **"Estado de cuenta: envío de resumen al proveedor"**: le pide al proveedor que concilie saldos e informe diferencias.
+
+En las dos:
 
 - El asunto y el remitente usan la empresa y el email del usuario que envía.
-- El cliente tiene que tener **email** cargado.
-- La plantilla se carga con `noupdate`: los cambios que se le hagan **no se pisan** al actualizar el módulo.
+- El cliente o proveedor tiene que tener **email** cargado.
+- Se cargan con `noupdate`: los cambios que se les hagan **no se pisan** al actualizar el módulo.
 
 ### 5. Servidor de correo saliente
 
@@ -182,14 +214,17 @@ Los cuatro últimos amplían permisos sobre modelos **estándar**. Por eso los v
 
 Controles adicionales en el código (no dependen de `ir.access`):
 
-| Acción | Control |
-|---|---|
-| Consultar, imprimir | `_check_partner_access`: Facturación, o vendedor del cliente |
-| Enviar por email | Solo Facturación |
-| Imputar, desimputar | Solo Facturación |
-| Empresas | Solo las permitidas para el cliente **y** habilitadas para el usuario |
+| Acción | Método | Control en este módulo |
+|---|---|---|
+| Consultar, imprimir | `_check_partner_access(partner, partner_type)` | Facturación, o vendedor del cliente (solo tipo Cliente) |
+| Enviar por email | `_can_send(partner_type)` | Solo Facturación |
+| Imputar | `_can_reconcile(partner_type)` | Solo Facturación |
+| Desimputar | `_can_unreconcile(partner_type)` | Solo Facturación. El tipo sale de la cuenta de la imputación (a pagar = proveedor) |
+| Empresas | — | Solo las permitidas para el cliente/proveedor **y** habilitadas para el usuario |
 
-El cálculo de líneas lee los apuntes con `sudo()` **después** de validar el acceso al cliente y a las empresas. Así los vendedores no dependen de tener permisos contables completos.
+Esos cuatro métodos son **puntos de extensión**: otros módulos los heredan para dar más permisos (por ejemplo, `supplier_management` habilita a Compras en la cuenta de proveedores). La vista usa los campos calculados `can_reconcile`, `can_unreconcile`, `can_send` y `statement_can_unreconcile` para mostrar u ocultar los botones, y cada acción vuelve a verificar el permiso en el servidor.
+
+El cálculo de líneas lee los apuntes con `sudo()` **después** de validar el acceso al cliente y a las empresas. Así los vendedores y Compras no dependen de tener permisos contables completos.
 
 ## Base de datos
 
@@ -259,8 +294,9 @@ Cada consulta del asistente y su pantalla de resultado (`customer.account.statem
 | `date_from` | date | sí | — | — |
 | `date_to` | date | no | — | — |
 | `is_result` | boolean | sí | `True` una vez consultado: recién ahí se calculan líneas y totales | — |
+| `partner_type` | varchar | no | `customer` / `supplier` (por defecto `customer`) | — |
 
-`allowed_company_ids` e `is_consolidated` son calculados y no se guardan. `line_ids` y `currency_total_ids` son calculados y se guardan en sus propias tablas.
+`allowed_company_ids`, `is_consolidated`, `can_reconcile`, `can_unreconcile` y `can_send` son calculados y no se guardan. `line_ids` y `currency_total_ids` son calculados y se guardan en sus propias tablas.
 
 #### `customer_account_statement_company_rel` — temporal
 
@@ -297,6 +333,7 @@ Líneas calculadas del estado de cuenta. Es una **copia** de los datos al moment
 | `amount_residual` | numeric | sí | — | — |
 | `days_overdue` | integer | sí | — | — |
 | `is_reconciled` | boolean | sí | — | — |
+| `is_reconcile_source` | boolean | sí | `True` si la línea puede imputarse (recibo/pago/NC con saldo del lado del crédito) | — |
 
 #### `customer_account_statement_currency` — temporal
 
@@ -310,7 +347,7 @@ Totales por moneda de cada consulta ("Saldos por moneda"). Se calcula junto con 
 | `initial_balance` | numeric | sí | — | — |
 | `debit`, `credit` | numeric | sí | — (solo movimientos, sin el saldo inicial) | — |
 | `final_balance` | numeric | sí | — | — |
-| `amount_residual` | numeric | sí | — (total adeudado, modo Solo pendientes) | — |
+| `amount_residual` | numeric | sí | — (total adeudado o pendiente, modo Solo pendientes) | — |
 
 #### `customer_account_statement_reconcile` — temporal
 
@@ -320,9 +357,10 @@ Asistente de imputación (`customer.account.statement.reconcile`).
 |---|---|---|---|---|
 | `id` | integer | no | — | — |
 | `statement_id` | integer | sí | `customer_account_statement.id` | SET NULL |
-| `credit_line_id` | integer | no | `account_move_line.id` (el crédito a imputar) | CASCADE |
+| `credit_line_id` | integer | no | `account_move_line.id` (el crédito a imputar: recibo, pago o NC) | CASCADE |
 | `partner_id` | integer | no | `res_partner.id` | CASCADE |
-| `available_amount` | numeric | sí | — | — |
+| `available_amount` | numeric | sí | — (valor absoluto del pendiente del crédito) | — |
+| `partner_type` | varchar | sí | `customer` / `supplier`: el del estado de cuenta o, sin él, según la cuenta del crédito | — |
 
 #### `customer_account_statement_reconcile_line` — temporal
 
@@ -332,10 +370,10 @@ Comprobantes ofrecidos para imputar.
 |---|---|---|---|---|
 | `id` | integer | no | — | — |
 | `reconcile_id` | integer | no | `customer_account_statement_reconcile.id` | CASCADE |
-| `debit_line_id` | integer | no | `account_move_line.id` (la factura o ND) | CASCADE |
+| `debit_line_id` | integer | no | `account_move_line.id` (la factura o ND, de cliente o de proveedor) | CASCADE |
 | `selected` | boolean | sí | — | — |
-| `amount_residual` | numeric | sí | — | — |
-| `amount_to_apply` | numeric | sí | — | — |
+| `amount_residual` | numeric | sí | — (valor absoluto) | — |
+| `amount_to_apply` | numeric | sí | — (valor absoluto) | — |
 | `allow_partial` | boolean | sí | — | — |
 
 Las tablas temporales son de modelos `TransientModel`: Odoo borra solo las filas viejas.
@@ -345,7 +383,7 @@ Las tablas temporales son de modelos `TransientModel`: Odoo borra solo las filas
 | Tabla | Cambio de estructura | Escritura de datos |
 |---|---|---|
 | `res_partner` | Ninguno. `company_ids` vive en la tabla de relación. | No |
-| `account_partial_reconcile` | Ninguno. `statement_counterpart_line_id` y `statement_counterpart_move_id` son calculados, sin columna. | Sí: altas al imputar, bajas al desimputar |
+| `account_partial_reconcile` | Ninguno. `statement_counterpart_line_id`, `statement_counterpart_move_id` y `statement_can_unreconcile` son calculados, sin columna. | Sí: altas al imputar, bajas al desimputar (clientes y proveedores) |
 | `account_move_line`, `account_move` | Ninguno | Solo lo que actualiza la conciliación estándar (`amount_residual`, `reconciled`, estado de pago) |
 
 ### Registros de configuración
@@ -356,11 +394,11 @@ Se guardan en las tablas estándar de metadatos de Odoo y se identifican en `ir_
 |---|---|
 | `ir_access` | 12 (ver [Permisos](#permisos)) |
 | `ir_ui_view` | 7: asistente previo, pantalla de resultado, asistente de imputación, lista de imputaciones, herencia de la ficha de contacto y 2 plantillas QWeb del reporte |
-| `ir_act_window` | 1: `action_customer_account_statement` |
+| `ir_act_window` | 2: `action_customer_account_statement` y `action_supplier_account_statement` |
 | `ir_act_report_xml` | 1: `action_report_customer_account_statement` |
-| `ir_ui_menu` | 1: `menu_customer_account_statement` |
-| `mail_template` | 1: `mail_template_customer_account_statement` (`noupdate`) |
-| `ir_model` / `ir_model_fields` / `ir_model_fields_selection` | 7 / 93 / 4, generados por Odoo a partir de los modelos |
+| `ir_ui_menu` | 2: `menu_customer_account_statement` (Clientes) y `menu_supplier_account_statement` (Proveedores) |
+| `mail_template` | 2: `mail_template_customer_account_statement` y `mail_template_supplier_account_statement` (`noupdate`) |
+| `ir_model` / `ir_model_fields` / `ir_model_fields_selection` | 7 / 100 / 8, generados por Odoo a partir de los modelos |
 
 ### Al desinstalar
 
@@ -382,7 +420,8 @@ Si se arranca Odoo sin `..\custom_addons`, el log muestra `module customer_accou
 
 ## Limitaciones conocidas
 
-- Solo cuentas **a cobrar**. No muestra la cuenta corriente de proveedores.
+- Cliente y proveedor son cuentas separadas: no hay un estado de cuenta combinado de un contacto que es las dos cosas.
+- Los nombres técnicos (`customer_account_statement`, `customer.account.statement`) se conservan aunque el módulo también sirva para proveedores.
 - El consolidado **no convierte monedas**: cada moneda tiene su fila en "Saldos por moneda" (y su bloque en el PDF).
 - La lista de movimientos de la pantalla no tiene totales al pie, porque mezclarían monedas. Los totales están en "Saldos por moneda".
 - El recálculo es automático en cada cambio: con clientes de muchísimos movimientos cada casilla puede tardar unos segundos.
@@ -391,6 +430,20 @@ Si se arranca Odoo sin `..\custom_addons`, el log muestra `module customer_accou
 - Las líneas son temporales: Odoo borra solas las consultas viejas. Para guardar un estado de cuenta, imprimir el PDF o enviarlo.
 
 ## Historial de cambios
+
+### 2026-10-21 — versión 1.2 ([SPEC 03](../specs/03-app-proveedores.md))
+- **Nuevo:** estado de cuenta de **proveedores** (cuentas a pagar) con el campo `partner_type` (Cliente / Proveedor), saldo contable (lo que se le debe al proveedor sale negativo), tipo "Pago" y textos de proveedor en pantalla, PDF y email.
+  - Base de datos: columna nueva `partner_type` (varchar, no nula, por defecto `customer`) en `customer_account_statement`; columna nueva `is_reconcile_source` en `customer_account_statement_line`; acción nueva `action_supplier_account_statement` en `ir_act_window`; se actualizan `arch_db` de las dos vistas del asistente y las plantillas QWeb del reporte en `ir_ui_view`, y `print_report_name` de `action_report_customer_account_statement`.
+- **Nuevo:** menú Contabilidad / Facturación → Proveedores → Estado de cuenta y botón **"Cuenta proveedor"** en la ficha del contacto (solo proveedores).
+  - Base de datos: menú nuevo `menu_supplier_account_statement` en `ir_ui_menu`; se actualiza `arch_db` de `res_partner_view_form_inherit_account_statement`.
+- **Nuevo:** imputación en sentido proveedor (pago o NC del proveedor contra sus facturas/ND, con importe parcial en moneda de la empresa) y validación de cliente/proveedor, empresa, cuenta, estado y signo antes de imputar.
+  - Base de datos: columna nueva `partner_type` en `customer_account_statement_reconcile`; se actualiza `arch_db` de `customer_account_statement_reconcile_view_form`. Al imputar o desimputar proveedores se escriben y borran filas de `account_partial_reconcile`, igual que con clientes.
+- **Nuevo:** plantilla de email "Estado de cuenta: envío de resumen al proveedor".
+  - Base de datos: registro nuevo `mail_template_supplier_account_statement` en `mail_template` (`noupdate`).
+- **Cambio:** los controles de permisos pasan a los métodos `_check_partner_access(partner, partner_type)`, `_can_reconcile`, `_can_unreconcile` y `_can_send`, que otros módulos pueden extender. Los botones Imputar, Desimputar y Enviar por email se muestran según campos calculados en lugar de `groups`. Para clientes, los permisos no cambian.
+  - Base de datos: campos calculados nuevos sin columna (`can_reconcile`, `can_unreconcile`, `can_send` y `account_partial_reconcile.statement_can_unreconcile`); se actualiza `arch_db` de `account_partial_reconcile_view_list_statement`. Sin cambios en `ir_access`.
+- **Corrección:** el PDF adjunto al enviar por email salía vacío. Odoo 20 ignora el campo `datas` de `ir.attachment`, y ahora el contenido se guarda con `raw`.
+  - Base de datos: sin cambios de estructura. Los adjuntos nuevos de `ir_attachment` guardan el PDF.
 
 ### 2026-10-20 — versión 1.1 ([SPEC 02](../specs/02-app-clientes.md))
 - **Cambio:** el asistente previo ya no pide "Empresas". La consulta abre con todas las empresas permitidas del cliente tildadas.

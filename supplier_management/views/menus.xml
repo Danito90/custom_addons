@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_supplier_management_root"
+              name="Proveedores"
+              web_icon="supplier_management,static/description/icon.png"
+              groups="account.group_account_invoice,purchase.group_purchase_user"
+              sequence="36">
+        <menuitem id="menu_supplier_management_suppliers" name="Proveedores"
+                  action="action_supplier_management_suppliers" sequence="10"/>
+        <menuitem id="menu_supplier_management_statement" name="Estado de cuenta"
+                  action="customer_account_statement.action_supplier_account_statement" sequence="20"/>
+        <menuitem id="menu_supplier_management_invoices" name="Facturas y notas"
+                  action="action_supplier_management_invoices" sequence="30"/>
+        <menuitem id="menu_supplier_management_payments" name="Pagos realizados"
+                  action="action_supplier_management_payments" sequence="40"/>
+        <menuitem id="menu_supplier_management_overdue" name="Comprobantes vencidos"
+                  action="action_supplier_management_overdue" sequence="50"/>
+        <menuitem id="menu_supplier_management_purchase_orders" name="Órdenes de compra"
+                  action="purchase.purchase_form_action" sequence="60"/>
+        <!-- Reservado (sequence 70): menu_supplier_management_bill_import, "Carga automática de
+             facturas". Lo crea la spec de carga automatizada de facturas de proveedor. -->
+        <menuitem id="menu_supplier_management_config" name="Configuración"
+                  groups="base.group_system" sequence="100">
+            <menuitem id="menu_supplier_management_settings" name="Ajustes"
+                      action="action_supplier_management_settings" sequence="10"/>
+        </menuitem>
+    </menuitem>
+</odoo>

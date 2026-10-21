@@ -8,7 +8,10 @@
                 <group>
                     <group>
                         <field name="credit_line_id" readonly="1"/>
-                        <field name="partner_id" readonly="1"/>
+                        <field name="partner_type" invisible="1"/>
+                        <label for="partner_id" string="Cliente" invisible="partner_type == 'supplier'"/>
+                        <label for="partner_id" string="Proveedor" invisible="partner_type != 'supplier'"/>
+                        <field name="partner_id" nolabel="1" readonly="1"/>
                         <field name="statement_id" invisible="1"/>
                     </group>
                     <group>
@@ -33,7 +36,8 @@
                     </list>
                 </field>
                 <div class="text-muted">
-                    El importe es editable solo si el crédito y la factura están en la moneda de la empresa.
+                    El importe es editable solo si el crédito (recibo, pago o nota de crédito) y la factura
+                    están en la moneda de la empresa.
                     En otra moneda se imputa por el total posible.
                 </div>
                 <footer>

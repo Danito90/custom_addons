@@ -5,9 +5,13 @@
         <field name="model">customer.account.statement</field>
         <field name="arch" type="xml">
             <form string="Estado de cuenta">
+                <field name="partner_type" invisible="1"/>
+                <field name="can_send" invisible="1"/>
                 <group>
                     <group>
-                        <field name="partner_id" options="{'no_create': True}"/>
+                        <label for="partner_id" string="Cliente" invisible="partner_type == 'supplier'"/>
+                        <label for="partner_id" string="Proveedor" invisible="partner_type != 'supplier'"/>
+                        <field name="partner_id" nolabel="1" options="{'no_create': True}"/>
                     </group>
                     <group>
                         <field name="mode" widget="radio"/>
@@ -16,14 +20,15 @@
                     </group>
                 </group>
                 <div class="text-muted">
-                    Se incluyen todas las empresas en las que participa el cliente.
+                    <span invisible="partner_type == 'supplier'">Se incluyen todas las empresas en las que participa el cliente.</span>
+                    <span invisible="partner_type != 'supplier'">Se incluyen todas las empresas en las que participa el proveedor.</span>
                     Después de consultar podés elegir cuáles mostrar.
                 </div>
                 <footer>
                     <button name="action_view" string="Consultar" type="object" class="btn-primary"/>
                     <button name="action_print" string="Imprimir" type="object" class="btn-secondary"/>
                     <button name="action_send" string="Enviar por email" type="object" class="btn-secondary"
-                            groups="account.group_account_invoice"/>
+                            invisible="not can_send"/>
                     <button string="Cancelar" special="cancel" class="btn-secondary"/>
                 </footer>
             </form>
@@ -40,12 +45,17 @@
                     <button name="action_print" string="Imprimir" type="object" class="btn-primary"
                             invisible="not company_ids"/>
                     <button name="action_send" string="Enviar por email" type="object" class="btn-secondary"
-                            invisible="not company_ids" groups="account.group_account_invoice"/>
+                            invisible="not company_ids or not can_send"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
+                        <span class="text-muted" invisible="partner_type == 'supplier'">Cliente</span>
+                        <span class="text-muted" invisible="partner_type != 'supplier'">Proveedor</span>
                         <h1><field name="partner_id" readonly="1"/></h1>
                     </div>
+                    <field name="partner_type" invisible="1"/>
+                    <field name="can_reconcile" invisible="1"/>
+                    <field name="can_send" invisible="1"/>
                     <field name="allowed_company_ids" invisible="1"/>
                     <field name="is_consolidated" invisible="1"/>
                     <field name="is_result" invisible="1"/>
@@ -73,7 +83,10 @@
                             <field name="debit" column_invisible="parent.mode == 'pending'"/>
                             <field name="credit" column_invisible="parent.mode == 'pending'"/>
                             <field name="final_balance" column_invisible="parent.mode == 'pending'"/>
-                            <field name="amount_residual" column_invisible="parent.mode != 'pending'"/>
+                            <field name="amount_residual"
+                                   column_invisible="parent.mode != 'pending' or parent.partner_type == 'supplier'"/>
+                            <field name="amount_residual" string="Total pendiente"
+                                   column_invisible="parent.mode != 'pending' or parent.partner_type != 'supplier'"/>
                         </list>
                     </field>
                     <separator string="Movimientos" invisible="not company_ids"/>
@@ -84,6 +97,7 @@
                             <field name="sequence" column_invisible="True"/>
                             <field name="line_type" column_invisible="True"/>
                             <field name="is_reconciled" column_invisible="True"/>
+                            <field name="is_reconcile_source" column_invisible="True"/>
                             <field name="move_line_id" column_invisible="True"/>
                             <field name="move_id" column_invisible="True"/>
                             <field name="payment_id" column_invisible="True"/>
@@ -109,8 +123,8 @@
                             <button name="action_view_reconciliations" type="object" string="Imputaciones"
                                     icon="fa-link" invisible="line_type != 'move'"/>
                             <button name="action_open_reconcile_wizard" type="object" string="Imputar"
-                                    icon="fa-check-square-o" groups="account.group_account_invoice"
-                                    invisible="line_type != 'move' or not credit or is_reconciled"/>
+                                    icon="fa-check-square-o"
+                                    invisible="line_type != 'move' or not is_reconcile_source or is_reconciled or not parent.can_reconcile"/>
                         </list>
                     </field>
                 </sheet>
@@ -124,5 +138,14 @@
         <field name="view_mode">form</field>
         <field name="view_id" ref="customer_account_statement_view_form"/>
         <field name="target">new</field>
+    </record>
+
+    <record id="action_supplier_account_statement" model="ir.actions.act_window">
+        <field name="name">Estado de cuenta de proveedor</field>
+        <field name="res_model">customer.account.statement</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="customer_account_statement_view_form"/>
+        <field name="target">new</field>
+        <field name="context">{'default_partner_type': 'supplier'}</field>
     </record>
 </odoo>

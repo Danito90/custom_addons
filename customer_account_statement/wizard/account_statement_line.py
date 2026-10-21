@@ -34,6 +34,9 @@ class CustomerAccountStatementLine(models.TransientModel):
     amount_residual = fields.Monetary(string='Pendiente')
     days_overdue = fields.Integer(string='Días de atraso')
     is_reconciled = fields.Boolean(string='Imputado totalmente')
+    is_reconcile_source = fields.Boolean(
+        string='Imputable', help='Recibo o NC de cliente, o pago o NC de proveedor, que se puede '
+                                 'imputar a facturas.')
 
     def action_open_document(self):
         self.ensure_one()
@@ -71,8 +74,9 @@ class CustomerAccountStatementLine(models.TransientModel):
 
     def action_open_reconcile_wizard(self):
         self.ensure_one()
-        if not self.env.user.has_group('account.group_account_invoice'):
-            raise AccessError(self.env._('Solo los usuarios de Facturación pueden imputar.'))
+        statement = self.statement_id
+        if not statement._can_reconcile(statement.partner_type):
+            raise AccessError(self.env._('No tenés permiso para imputar.'))
         return {
             'type': 'ir.actions.act_window',
             'name': self.env._('Imputar %s', self.name),

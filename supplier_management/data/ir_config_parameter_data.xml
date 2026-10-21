@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Casillas de permisos de Compras tildadas al instalar. noupdate: después las decide el administrador. -->
+<odoo noupdate="1">
+    <record id="config_purchase_can_reconcile" model="ir.config_parameter">
+        <field name="key">supplier_management.purchase_can_reconcile</field>
+        <field name="value">True</field>
+    </record>
+    <record id="config_purchase_can_unreconcile" model="ir.config_parameter">
+        <field name="key">supplier_management.purchase_can_unreconcile</field>
+        <field name="value">True</field>
+    </record>
+    <record id="config_purchase_can_send" model="ir.config_parameter">
+        <field name="key">supplier_management.purchase_can_send</field>
+        <field name="value">True</field>
+    </record>
+</odoo>

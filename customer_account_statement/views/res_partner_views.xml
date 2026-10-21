@@ -9,6 +9,10 @@
                 <button class="oe_stat_button" type="object" name="action_open_account_statement"
                         icon="fa-book" string="Estado de cuenta"
                         groups="account.group_account_invoice,sales_team.group_sale_salesman"/>
+                <button class="oe_stat_button" type="object" name="action_open_supplier_account_statement"
+                        icon="fa-truck" string="Cuenta proveedor"
+                        invisible="supplier_rank == 0"
+                        groups="account.group_account_invoice"/>
             </div>
             <group name="misc" position="inside">
                 <field name="company_ids" widget="many2many_checkboxes"

@@ -1,12 +1,12 @@
 {
-    'name': 'Estado de cuenta de clientes',
-    'version': '1.1',
+    'name': 'Estado de cuenta de clientes y proveedores',
+    'version': '1.2',
     'category': 'Accounting',
-    'summary': 'Consultá, imprimí, enviá e imputá la cuenta corriente de tus clientes',
+    'summary': 'Consultá, imprimí, enviá e imputá la cuenta corriente de tus clientes y proveedores',
     'description': """
-Estado de cuenta de clientes por empresa o consolidado por moneda:
+Estado de cuenta de clientes y proveedores por empresa o consolidado por moneda:
 movimientos con saldo acumulado, comprobantes pendientes, detalle e
-imputación de recibos y notas de crédito, resumen en PDF y envío por email.
+imputación de recibos, pagos y notas de crédito, resumen en PDF y envío por email.
 """,
     'author': 'Daniel',
     'depends': ['account', 'sales_team'],

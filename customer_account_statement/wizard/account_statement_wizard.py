@@ -1,4 +1,3 @@
-import base64
 from collections import defaultdict
 
 from odoo import Command, api, fields, models
@@ -8,6 +7,26 @@ MODES = [
     ('movements', 'Movimientos'),
     ('pending', 'Solo pendientes'),
 ]
+
+PARTNER_TYPES = [
+    ('customer', 'Cliente'),
+    ('supplier', 'Proveedor'),
+]
+
+ACCOUNT_TYPES = {
+    'customer': 'asset_receivable',
+    'supplier': 'liability_payable',
+}
+
+PARTNER_LABELS = {
+    'customer': 'cliente',
+    'supplier': 'proveedor',
+}
+
+MAIL_TEMPLATES = {
+    'customer': 'customer_account_statement.mail_template_customer_account_statement',
+    'supplier': 'customer_account_statement.mail_template_supplier_account_statement',
+}
 
 DOCUMENT_TYPES = {
     'out_invoice': 'Factura',
@@ -21,8 +40,10 @@ DOCUMENT_TYPES = {
 
 class CustomerAccountStatement(models.TransientModel):
     _name = 'customer.account.statement'
-    _description = 'Estado de cuenta de cliente'
+    _description = 'Estado de cuenta de cliente o proveedor'
 
+    partner_type = fields.Selection(
+        PARTNER_TYPES, string='Tipo', required=True, default='customer')
     partner_id = fields.Many2one(
         'res.partner', string='Cliente', required=True,
         domain="['|', ('is_company', '=', True), ('parent_id', '=', False)]")
@@ -44,6 +65,9 @@ class CustomerAccountStatement(models.TransientModel):
     currency_total_ids = fields.One2many(
         'customer.account.statement.currency', 'statement_id', string='Saldos por moneda',
         compute='_compute_statement', store=True, readonly=True)
+    can_reconcile = fields.Boolean(string='Puede imputar', compute='_compute_permissions')
+    can_unreconcile = fields.Boolean(string='Puede desimputar', compute='_compute_permissions')
+    can_send = fields.Boolean(string='Puede enviar por email', compute='_compute_permissions')
 
     @api.depends('partner_id')
     def _compute_allowed_company_ids(self):
@@ -68,7 +92,15 @@ class CustomerAccountStatement(models.TransientModel):
         for statement in self:
             statement.is_consolidated = len(statement.company_ids) > 1
 
-    @api.depends('is_result', 'partner_id', 'company_ids', 'mode', 'date_from', 'date_to')
+    @api.depends_context('uid')
+    @api.depends('partner_type')
+    def _compute_permissions(self):
+        for statement in self:
+            statement.can_reconcile = self._can_reconcile(statement.partner_type)
+            statement.can_unreconcile = self._can_unreconcile(statement.partner_type)
+            statement.can_send = self._can_send(statement.partner_type)
+
+    @api.depends('is_result', 'partner_id', 'partner_type', 'company_ids', 'mode', 'date_from', 'date_to')
     def _compute_statement(self):
         for statement in self:
             line_vals = statement._prepare_lines()
@@ -86,33 +118,50 @@ class CustomerAccountStatement(models.TransientModel):
             }}
 
     # -------------------------------------------------------------------------
-    # Controles
+    # Controles (puntos de extensión: supplier_management los amplía para Compras)
     # -------------------------------------------------------------------------
 
     @api.model
-    def _check_partner_access(self, partner):
+    def _check_partner_access(self, partner, partner_type='customer'):
         user = self.env.user
         if user.has_group('account.group_account_invoice'):
             return
-        if (user.has_group('sales_team.group_sale_salesman')
+        if (partner_type == 'customer'
+                and user.has_group('sales_team.group_sale_salesman')
                 and partner.commercial_partner_id.user_id == user):
             return
         raise AccessError(self.env._(
             'No tenés permiso para consultar el estado de cuenta de %s.',
             partner.commercial_partner_id.display_name))
 
+    @api.model
+    def _can_reconcile(self, partner_type):
+        return self.env.user.has_group('account.group_account_invoice')
+
+    @api.model
+    def _can_unreconcile(self, partner_type):
+        return self.env.user.has_group('account.group_account_invoice')
+
+    @api.model
+    def _can_send(self, partner_type):
+        return self.env.user.has_group('account.group_account_invoice')
+
+    def _get_partner_label(self):
+        return PARTNER_LABELS[self.partner_type or 'customer']
+
     def _check_statement(self):
         self.ensure_one()
-        self._check_partner_access(self.partner_id)
+        self._check_partner_access(self.partner_id, self.partner_type)
         if not self.allowed_company_ids:
             raise UserError(self.env._(
-                'El cliente no participa en ninguna de las empresas que tenés habilitadas.'))
+                'El %s no participa en ninguna de las empresas que tenés habilitadas.',
+                self._get_partner_label()))
         if not self.company_ids:
             raise UserError(self.env._('Tildá al menos una empresa.'))
         if not self.company_ids._origin <= self.allowed_company_ids._origin:
             raise UserError(self.env._(
-                'El cliente no participa en alguna de las empresas elegidas, '
-                'o no tenés acceso a ellas.'))
+                'El %s no participa en alguna de las empresas elegidas, '
+                'o no tenés acceso a ellas.', self._get_partner_label()))
         if self.mode == 'movements' and self.date_from and self.date_from > self.date_to:
             raise UserError(self.env._('La fecha "Desde" no puede ser posterior a "Hasta".'))
 
@@ -128,17 +177,23 @@ class CustomerAccountStatement(models.TransientModel):
         return [
             ('partner_id', 'child_of', self.partner_id._origin.commercial_partner_id.id),
             ('company_id', 'in', companies.ids),
-            ('account_id.account_type', '=', 'asset_receivable'),
+            ('account_id.account_type', '=', ACCOUNT_TYPES[self.partner_type]),
             ('parent_state', '=', 'posted'),
         ]
 
-    @api.model
     def _get_document_type(self, move):
         if move.origin_payment_id:
-            return 'Recibo'
+            return 'Pago' if self.partner_type == 'supplier' else 'Recibo'
         if 'debit_origin_id' in move._fields and move.debit_origin_id:
             return 'Nota de débito'
         return DOCUMENT_TYPES.get(move.move_type, 'Asiento')
+
+    def _is_reconcile_source(self, aml):
+        """ True si el apunte puede imputarse a comprobantes: recibo/NC de cliente (saldo acreedor)
+        o pago/NC de proveedor (saldo deudor). """
+        if self.partner_type == 'supplier':
+            return aml.balance > 0
+        return aml.credit > 0
 
     def _prepare_move_line_vals(self, aml):
         company_currency = aml.company_currency_id
@@ -160,6 +215,7 @@ class CustomerAccountStatement(models.TransientModel):
             'original_currency_id': aml.currency_id.id if foreign else False,
             'amount_currency': aml.amount_currency if foreign else 0.0,
             'is_reconciled': aml.reconciled,
+            'is_reconcile_source': self._is_reconcile_source(aml),
         }
 
     def _prepare_movements_lines(self, AccountMoveLine, companies):
@@ -215,6 +271,9 @@ class CustomerAccountStatement(models.TransientModel):
                 continue
             vals = self._prepare_move_line_vals(aml)
             overdue = (self.date_to - aml.date_maturity).days if aml.date_maturity else 0
+            # En proveedores solo atrasan las facturas/ND (lo que se le debe, pendiente negativo).
+            if self.partner_type == 'supplier' and residual > 0:
+                overdue = 0
             vals.update({
                 'amount_residual': residual,
                 'days_overdue': max(overdue, 0),
@@ -232,7 +291,7 @@ class CustomerAccountStatement(models.TransientModel):
             return []
         # is_result solo se activa desde _generate_lines, después de _check_statement: el acceso
         # ya se validó. Se lee con sudo para no depender de los permisos contables del usuario
-        # (vendedores) ni de las empresas activas.
+        # (vendedores, Compras) ni de las empresas activas.
         AccountMoveLine = self.env['account.move.line'].sudo()
         if self.mode == 'pending':
             vals_list = self._prepare_pending_lines(AccountMoveLine, companies)
@@ -302,9 +361,13 @@ class CustomerAccountStatement(models.TransientModel):
         self.ensure_one()
         self._generate_lines()
         partner = self.partner_id.commercial_partner_id
+        if self.partner_type == 'supplier':
+            name = self.env._('Cuenta proveedor: %s', partner.display_name)
+        else:
+            name = self.env._('Estado de cuenta: %s', partner.display_name)
         return {
             'type': 'ir.actions.act_window',
-            'name': self.env._('Estado de cuenta: %s', partner.display_name),
+            'name': name,
             'res_model': self._name,
             'res_id': self.id,
             'view_mode': 'form',
@@ -325,17 +388,17 @@ class CustomerAccountStatement(models.TransientModel):
         return self._action_send_mail()
 
     def _check_send_access(self):
-        if not self.env.user.has_group('account.group_account_invoice'):
-            raise AccessError(self.env._('Solo los usuarios de Facturación pueden enviar el resumen.'))
+        if not self._can_send(self.partner_type):
+            raise AccessError(self.env._('No tenés permiso para enviar el resumen por email.'))
 
     def _action_print_report(self):
-        """ Imprime las líneas ya calculadas (usado también desde la lista de líneas). """
-        self._check_partner_access(self.partner_id)
+        """ Imprime las líneas ya calculadas. """
+        self._check_partner_access(self.partner_id, self.partner_type)
         return self.env.ref(
             'customer_account_statement.action_report_customer_account_statement').report_action(self)
 
     def _action_send_mail(self):
-        """ Envía las líneas ya calculadas (usado también desde la lista de líneas). """
+        """ Envía las líneas ya calculadas. """
         self._check_send_access()
         partner = self.partner_id.commercial_partner_id
         pdf_content, _report_type = self.env['ir.actions.report']._render_qweb_pdf(
@@ -343,12 +406,12 @@ class CustomerAccountStatement(models.TransientModel):
         attachment = self.env['ir.attachment'].create({
             'name': f'Resumen de cuenta - {partner.name} - {self.date_to}.pdf',
             'type': 'binary',
-            'datas': base64.b64encode(pdf_content),
+            'raw': pdf_content,
             'mimetype': 'application/pdf',
             'res_model': 'mail.compose.message',
             'res_id': 0,
         })
-        template = self.env.ref('customer_account_statement.mail_template_customer_account_statement')
+        template = self.env.ref(MAIL_TEMPLATES[self.partner_type])
         return {
             'type': 'ir.actions.act_window',
             'name': self.env._('Enviar resumen de cuenta'),

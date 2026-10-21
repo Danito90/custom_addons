@@ -4,15 +4,18 @@
         <t t-set="partner" t-value="doc.partner_id.commercial_partner_id"/>
         <t t-set="company" t-value="doc.env.company"/>
         <t t-set="is_pending" t-value="doc.mode == 'pending'"/>
+        <t t-set="is_supplier" t-value="doc.partner_type == 'supplier'"/>
         <t t-call="web.external_layout">
             <div class="page">
                 <h2>
-                    Resumen de cuenta
+                    <t t-if="is_supplier">Resumen de cuenta de proveedor</t>
+                    <t t-else="">Resumen de cuenta</t>
                     <small t-if="is_pending" class="text-muted">- Comprobantes pendientes</small>
                 </h2>
                 <div class="row mt-3 mb-4">
                     <div class="col-6">
-                        <strong>Cliente</strong>
+                        <strong t-if="is_supplier">Proveedor</strong>
+                        <strong t-else="">Cliente</strong>
                         <div t-field="partner.name"/>
                         <div t-if="partner.vat">CUIT: <span t-field="partner.vat"/></div>
                         <div t-out="partner"
@@ -37,7 +40,10 @@
                 </div>
 
                 <t t-set="groups" t-value="doc._get_report_groups()"/>
-                <p t-if="not groups">El cliente no tiene movimientos para los filtros elegidos.</p>
+                <p t-if="not groups">
+                    <t t-if="is_supplier">El proveedor</t><t t-else="">El cliente</t>
+                    no tiene movimientos para los filtros elegidos.
+                </p>
                 <t t-foreach="groups" t-as="group">
                     <t t-set="currency" t-value="group['currency']"/>
                     <h5 t-if="len(groups) &gt; 1 or doc.is_consolidated" class="mt-4">
@@ -108,6 +114,7 @@
                             <tr class="fw-bold">
                                 <td t-att-colspan="5 if doc.is_consolidated else 4">
                                     <t t-if="not is_pending">Saldo final</t>
+                                    <t t-elif="is_supplier">Total pendiente</t>
                                     <t t-else="">Total adeudado</t>
                                 </td>
                                 <t t-if="not is_pending">
