@@ -5,7 +5,7 @@
         <field name="model">res.partner</field>
         <field name="priority">100</field>
         <field name="arch" type="xml">
-            <list string="Proveedores" create="0">
+            <list string="Proveedores">
                 <field name="complete_name" string="Nombre"/>
                 <field name="vat" string="CUIT"/>
                 <field name="company_ids" widget="many2many_tags" optional="show"/>
@@ -59,6 +59,7 @@
             'res_partner_search_mode': 'supplier',
             'default_is_company': True,
             'default_supplier_rank': 1,
+            'partner_vat_check_scope': 'supplier',
         }</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No hay proveedores para estos filtros</p>

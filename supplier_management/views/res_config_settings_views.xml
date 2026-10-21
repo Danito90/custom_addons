@@ -24,6 +24,13 @@
                             <field name="purchase_can_send"/>
                         </setting>
                     </block>
+                    <block title="Alta de proveedores" name="supplier_management_vat_check">
+                        <setting id="supplier_management_vat_duplicate_policy"
+                                 string="CUIT repetido en Proveedores"
+                                 help="Al guardar desde la app Proveedores un proveedor con el CUIT de otro proveedor activo: Bloquear no deja guardar, Avisar guarda y deja una nota en el chatter.">
+                            <field name="supplier_vat_duplicate_policy"/>
+                        </setting>
+                    </block>
                 </app>
             </xpath>
         </field>

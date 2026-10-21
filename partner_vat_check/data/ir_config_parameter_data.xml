@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Los dos ajustes en Bloquear al instalar. noupdate: después los decide el administrador. -->
+<odoo noupdate="1">
+    <record id="config_customer_policy" model="ir.config_parameter">
+        <field name="key">partner_vat_check.customer_policy</field>
+        <field name="value">block</field>
+    </record>
+    <record id="config_supplier_policy" model="ir.config_parameter">
+        <field name="key">partner_vat_check.supplier_policy</field>
+        <field name="value">block</field>
+    </record>
+</odoo>

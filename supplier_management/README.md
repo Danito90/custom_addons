@@ -1,6 +1,6 @@
 # Proveedores
 
-Módulo técnico: `supplier_management` · Odoo 20.0 · Dependencias: `customer_account_statement`, `purchase` · Licencia LGPL-3
+Módulo técnico: `supplier_management` · Odoo 20.0 · Dependencias: `customer_account_statement`, `purchase`, `partner_vat_check` · Licencia LGPL-3
 
 App "Proveedores" que reúne en un solo lugar el listado de proveedores, su estado de cuenta, las facturas y notas, los pagos realizados, los comprobantes vencidos y las órdenes de compra.
 
@@ -8,6 +8,8 @@ App "Proveedores" que reúne en un solo lugar el listado de proveedores, su esta
 
 - **App propia** en el menú principal, con ícono, para Facturación y Compras.
 - **Listado de Proveedores** con filtros (Proveedores, Con deuda, Con vencidos), búsqueda y agrupación por empresa, ciudad y provincia.
+- **Alta de proveedores** con el botón "Nuevo" del listado, que abre la ficha completa con valores precargados.
+- **Control de CUIT repetido** al guardar desde la app, configurable: Bloquear, Avisar o No controlar.
 - **Estado de cuenta de proveedores:** el de `customer_account_statement` en modo Proveedor (cuentas a pagar), con imputación, PDF y email.
 - **Accesos directos** a facturas y notas de proveedor, pagos realizados, comprobantes vencidos y órdenes de compra.
 - **Permisos de Compras configurables:** los usuarios de Compras siempre consultan e imprimen; imputar, desimputar y enviar por email se habilitan con tres casillas en Ajustes.
@@ -17,11 +19,12 @@ App "Proveedores" que reúne en un solo lugar el listado de proveedores, su esta
 | Dónde | Cambio |
 |---|---|
 | Menú principal | App **Proveedores** (`menu_supplier_management_root`) con los menús de la [tabla de Uso](#uso). |
-| Contactos (`res.partner`) | Campos calculados **Con deuda a pagar** (`has_payable_debt`) y **Con vencidos a pagar** (`has_overdue_payable`), sin columna en la base. Vista lista y búsqueda propias de la app, que no reemplazan las de Contactos. |
+| Contactos (`res.partner`) | Campos calculados **Con deuda a pagar** (`has_payable_debt`) y **Con vencidos a pagar** (`has_overdue_payable`), sin columna en la base. Vista lista y búsqueda propias de la app, que no reemplazan las de Contactos. Empresa activa por defecto al crear desde la app (`default_get`). |
+| Listado de Proveedores | Botón **"Nuevo"** estándar (para quien puede crear contactos). |
 | Ficha del contacto | El botón **"Cuenta proveedor"** (de `customer_account_statement`) también se muestra a los usuarios de Compras. |
 | Estado de cuenta (`customer.account.statement`) | Hereda los controles de permisos para dar acceso a Compras en el modo Proveedor (ver [Permisos](#permisos)). |
 | Imputación (`customer.account.statement.reconcile`) y desimputación (`account.partial.reconcile`) | Para Compras, se ejecutan con `sudo()` después de verificar el permiso. |
-| Ajustes | Sección **Proveedores** con tres casillas (`ir.config_parameter` `supplier_management.purchase_can_reconcile`, `..._unreconcile` y `..._send`). |
+| Ajustes | Sección **Proveedores** con tres casillas (`ir.config_parameter` `supplier_management.purchase_can_reconcile`, `..._unreconcile` y `..._send`) y, en el bloque "Alta de proveedores", **"CUIT repetido en Proveedores"** (campo y parámetro de `partner_vat_check`). |
 | Permisos | Accesos de Compras a los modelos del estado de cuenta, y lectura de pagos a proveedores y sus asientos. |
 
 No crea modelos nuevos. No modifica facturas, pagos ni órdenes de compra: los menús abren las pantallas estándar con un filtro.
@@ -33,6 +36,23 @@ No crea modelos nuevos. No modifica facturas, pagos ni órdenes de compra: los m
 - Contactos principales: empresas o contactos sin padre (`is_company = True` o `parent_id = False`).
 - El filtro **"Proveedores"** (`supplier_rank > 0`: alguna vez se le cargó una factura de proveedor) viene activo y se puede quitar.
 - No hay columna de saldo: con varias monedas no hay un único importe correcto. El saldo se ve en el estado de cuenta.
+
+### Alta de proveedores
+
+- El botón **"Nuevo"** del listado abre la **ficha completa** del contacto. Lo ve quien puede crear contactos en Odoo (*Creación de contactos*, Gerente de compras); para los demás, Odoo lo oculta.
+- La ficha nueva viene con **Es empresa** tildado, **proveedor** (`supplier_rank = 1`) y la **empresa activa** del usuario en "Empresas en las que participa". No precarga Vendedor.
+- Los mismos valores aplican al "Nuevo" de la vista kanban. No aplican a los contactos hijos que se cargan dentro de la ficha.
+- La empresa activa la pone `default_get` cuando el contexto trae `partner_vat_check_scope = 'supplier'`, que agrega la acción del listado.
+
+### CUIT repetido
+
+Lo hace el módulo `partner_vat_check`; acá se configura el ajuste **"CUIT repetido en Proveedores"**:
+
+- **Bloquear** (por defecto): al guardar un proveedor con el CUIT de otro proveedor activo, Odoo muestra un error con su nombre y no guarda.
+- **Avisar:** guarda y deja una nota en el chatter del proveedor.
+- **No controlar.**
+
+Rige solo al crear o editar desde la app Proveedores, y compara solo contra proveedores. Es independiente del ajuste de la app Clientes. El detalle está en el [README de partner_vat_check](../partner_vat_check/README.md).
 
 ### Con deuda / Con vencidos
 
@@ -64,7 +84,7 @@ Entrar a la app **Proveedores** desde el menú principal.
 
 | Menú | Qué muestra | Quién lo ve |
 |---|---|---|
-| **Proveedores** | Listado de proveedores con filtros | Facturación y Compras |
+| **Proveedores** | Listado de proveedores con filtros y alta ("Nuevo") | Facturación y Compras |
 | **Estado de cuenta** | Asistente del estado de cuenta en modo Proveedor | Facturación y Compras |
 | **Facturas y notas** | Facturas, notas de crédito y notas de débito de proveedor | Facturación y Compras |
 | **Pagos realizados** | Pagos a proveedores | Facturación y Compras |
@@ -89,6 +109,8 @@ Ajustes → Usuarios y compañías → Usuarios → elegir el usuario.
 
 Un vendedor sin Facturación ni Compras no ve la app.
 
+Para **dar de alta proveedores**, el usuario necesita *Creación de contactos* (`base.group_partner_manager`) o *Compras: Administrador* (`purchase.group_purchase_manager`). Facturación o Compras: Usuario solos no alcanzan.
+
 ### 2. Permisos de Compras
 
 Entrar a Proveedores → Configuración → **Ajustes** (o Ajustes → **Proveedores**), bloque "Permisos de Compras en el estado de cuenta de proveedores":
@@ -101,6 +123,8 @@ Al instalar, las tres vienen tildadas (datos `noupdate` en `data/ir_config_param
 
 - Al destildar una y guardar, Odoo 20 guarda el parámetro con valor `False`; no lo borra.
 - Si se borra el parámetro a mano, la casilla queda destildada, y actualizar el módulo no lo vuelve a crear.
+
+En el mismo lugar, bloque "Alta de proveedores": **CUIT repetido en Proveedores** (Bloquear, Avisar o No controlar). Al instalar viene en Bloquear.
 
 ### 3. Empresas y datos del proveedor
 
@@ -171,7 +195,8 @@ Ninguna.
 | Tabla | Cambio de estructura | Escritura de datos |
 |---|---|---|
 | `res_config_settings` | Columnas nuevas `purchase_can_reconcile`, `purchase_can_unreconcile`, `purchase_can_send` (boolean, nulas). Tabla temporal de Ajustes. | No |
-| `res_partner` | Ninguno. `has_payable_debt` y `has_overdue_payable` son calculados, sin columna (se buscan con una consulta SQL agregada). | No |
+| `res_partner` | Ninguno. `has_payable_debt` y `has_overdue_payable` son calculados, sin columna (se buscan con una consulta SQL agregada). | Sí: altas de proveedores desde la app (alta estándar, con los valores precargados) |
+| `res_config_settings` / `ir_config_parameter` (CUIT repetido) | Los define `partner_vat_check`: columna `supplier_vat_duplicate_policy` y clave `partner_vat_check.supplier_policy`. Este módulo solo los muestra. | Al guardar Ajustes |
 | `ir_config_parameter` | Ninguno | Sí: 3 parámetros `supplier_management.purchase_can_*` con valor `True` al instalar; Ajustes los cambia |
 | `account_partial_reconcile` | Ninguno | Sí: altas al imputar y bajas al desimputar desde Compras |
 | `customer_account_statement`, `customer_account_statement_reconcile` | Ninguno (las tablas son de `customer_account_statement`) | Solo las consultas temporales de cada usuario |
@@ -207,7 +232,7 @@ python odoo-bin -r odoo_user -w <password> --addons-path=addons,..\custom_addons
 python odoo-bin -r odoo_user -w <password> --addons-path=addons,..\custom_addons -d <base> -u supplier_management
 ```
 
-Necesita `customer_account_statement` versión 1.2 o posterior, que trae el modo Proveedor.
+Necesita `customer_account_statement` versión 1.2 o posterior, que trae el modo Proveedor. Instala también `partner_vat_check` si falta.
 
 No necesita librerías de Python extra.
 
@@ -220,6 +245,12 @@ No necesita librerías de Python extra.
 - La carga automática de facturas de proveedor todavía no existe: solo está reservado su lugar en el menú.
 
 ## Historial de cambios
+
+### 2026-10-21 — versión 1.1 ([SPEC 04](../specs/04-alta-clientes-proveedores.md))
+- **Nuevo:** botón "Nuevo" estándar en el listado de Proveedores, con Es empresa, proveedor y empresa activa precargados.
+  - Base de datos: se actualiza `arch_db` de `res_partner_view_list_supplier_management` (sin `create="0"`) en `ir_ui_view`; el contexto de `action_supplier_management_suppliers` suma `partner_vat_check_scope` en `ir_act_window`. Sin cambios de tablas.
+- **Nuevo:** ajuste "CUIT repetido en Proveedores" (Bloquear / Avisar / No controlar) en la sección Proveedores de Ajustes. Depende del módulo nuevo `partner_vat_check`.
+  - Base de datos: se actualiza `arch_db` de la vista de Ajustes `res_config_settings_view_form`. La columna `supplier_vat_duplicate_policy` y el parámetro `partner_vat_check.supplier_policy` los crea `partner_vat_check`.
 
 ### 2026-10-21 — versión 1.0 ([SPEC 03](../specs/03-app-proveedores.md))
 - **Nuevo:** app Proveedores con listado y filtros, estado de cuenta de proveedores, facturas y notas, pagos realizados, comprobantes vencidos, órdenes de compra y Ajustes con los permisos de Compras.

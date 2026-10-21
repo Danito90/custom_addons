@@ -1,4 +1,5 @@
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
+from odoo.exceptions import AccessError
 from odoo.tools import SQL
 
 # Grupos que siempre ven todo en la app, aunque el ajuste esté activado.
@@ -118,6 +119,46 @@ class ResPartner(models.Model):
         user = self.env.user
         return (user.has_group('sales_team.group_sale_salesman')
                 and not any(user.has_group(group) for group in FULL_ACCESS_GROUPS))
+
+    # -------------------------------------------------------------------------
+    # Alta de clientes
+    # -------------------------------------------------------------------------
+
+    @api.model
+    def default_get(self, fields):
+        """ Alta desde la app Clientes: empresa activa y, si quien crea es vendedor, Vendedor.
+        No aplica a contactos hijos que se cargan dentro de la ficha. """
+        values = super().default_get(fields)
+        context = self.env.context
+        if context.get('partner_vat_check_scope') == 'customer' and not context.get('default_parent_id'):
+            if 'company_ids' in fields and not values.get('company_ids'):
+                values['company_ids'] = [Command.set(self.env.company.ids)]
+            if ('user_id' in fields and not values.get('user_id')
+                    and self.env.user.has_group('sales_team.group_sale_salesman')):
+                values['user_id'] = self.env.uid
+        return values
+
+    def action_customer_management_new_customer(self):
+        """ Botón "Nuevo cliente" del listado: abre la ficha completa con el contexto de la app.
+        Sin @api.model: el botón de cabecera lo llama con los ids seleccionados (o ninguno). """
+        if not self.has_access('create'):
+            raise AccessError(self.env._(
+                'No tenés permiso para crear clientes. Pedile a un administrador el permiso '
+                '"Creación de contactos".'))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': self.env._('Nuevo cliente'),
+            'res_model': 'res.partner',
+            'view_mode': 'form',
+            'views': [(False, 'form')],
+            'target': 'current',
+            'context': {
+                'default_is_company': True,
+                'default_customer_rank': 1,
+                'res_partner_search_mode': 'customer',
+                'partner_vat_check_scope': 'customer',
+            },
+        }
 
     # -------------------------------------------------------------------------
     # Menús de la app

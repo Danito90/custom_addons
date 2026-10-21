@@ -1,6 +1,6 @@
 {
     'name': 'Clientes',
-    'version': '1.0',
+    'version': '1.1',
     'category': 'Sales',
     'summary': 'Tus clientes en una app: listado, vendedores, estado de cuenta, comprobantes y visitas',
     'description': """
@@ -9,7 +9,7 @@ estado de cuenta, facturas y notas, pagos recibidos, comprobantes vencidos
 y visitas, con un ajuste para que los vendedores vean solo sus clientes.
 """,
     'author': 'Daniel',
-    'depends': ['customer_account_statement', 'customer_visit'],
+    'depends': ['customer_account_statement', 'customer_visit', 'partner_vat_check'],
     'data': [
         'security/ir.access.csv',
         'views/res_partner_views.xml',

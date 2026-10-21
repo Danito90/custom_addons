@@ -1,9 +1,20 @@
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 from odoo.tools import SQL
 
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
+
+    @api.model
+    def default_get(self, fields):
+        """ Alta desde la app Proveedores: empresa activa en "Empresas en las que participa".
+        No aplica a contactos hijos que se cargan dentro de la ficha. """
+        values = super().default_get(fields)
+        context = self.env.context
+        if (context.get('partner_vat_check_scope') == 'supplier' and not context.get('default_parent_id')
+                and 'company_ids' in fields and not values.get('company_ids')):
+            values['company_ids'] = [Command.set(self.env.company.ids)]
+        return values
 
     has_payable_debt = fields.Boolean(
         string='Con deuda a pagar', compute='_compute_payable_flags', search='_search_has_payable_debt')

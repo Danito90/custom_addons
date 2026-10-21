@@ -14,6 +14,13 @@
                             <field name="salesman_own_customers_only"/>
                         </setting>
                     </block>
+                    <block title="Alta de clientes" name="customer_management_vat_check">
+                        <setting id="customer_management_vat_duplicate_policy"
+                                 string="CUIT repetido en Clientes"
+                                 help="Al guardar desde la app Clientes un cliente con el CUIT de otro cliente activo: Bloquear no deja guardar, Avisar guarda y deja una nota en el chatter.">
+                            <field name="customer_vat_duplicate_policy"/>
+                        </setting>
+                    </block>
                 </app>
             </xpath>
         </field>
