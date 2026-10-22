@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_count_sheet">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h3>Planilla de conteo <span t-field="doc.name"/></h3>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Depósito:</strong> <span t-field="doc.warehouse_id"/><br/>
+                                <strong>Categorías:</strong> <span t-out="', '.join(doc.category_ids.mapped('complete_name'))"/>
+                                <t t-if="doc.include_child_categories"> (con subcategorías)</t>
+                            </div>
+                            <div class="col-6">
+                                <strong>Empresa:</strong> <span t-field="doc.company_id"/><br/>
+                                <strong>Fecha:</strong> <span t-field="doc.date"/>
+                            </div>
+                        </div>
+                        <t t-foreach="groups[doc.id]" t-as="group">
+                            <t t-set="location" t-value="group[0]"/>
+                            <t t-set="categ" t-value="group[1]"/>
+                            <t t-set="lines" t-value="group[2]"/>
+                            <h6 class="mt-3">
+                                <span t-out="location.complete_name"/> · <span t-out="categ.complete_name"/>
+                            </h6>
+                            <table class="table table-sm table-bordered o_main_table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 14%">Código</th>
+                                        <th>Producto</th>
+                                        <th style="width: 9%">Unidad</th>
+                                        <th t-if="show_theoretical" class="text-end" style="width: 10%">Teórico</th>
+                                        <th class="text-end" style="width: 14%">Cantidad contada</th>
+                                        <th style="width: 20%">Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="lines" t-as="line">
+                                        <td><span t-out="line.default_code or ''"/></td>
+                                        <td><span t-out="line.product_id.name"/></td>
+                                        <td><span t-out="line.uom_id.name"/></td>
+                                        <td t-if="show_theoretical" class="text-end">
+                                            <span t-out="theoretical.get(line.id, 0.0)"
+                                                  t-options="{'widget': 'float', 'precision': 2}"/>
+                                        </td>
+                                        <td style="height: 26px;"/>
+                                        <td/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                        <div class="row mt-5">
+                            <div class="col-6">
+                                <p>Contó: ______________________________</p>
+                                <p>Firma: ______________________________</p>
+                            </div>
+                            <div class="col-6">
+                                <p>Fecha y hora del conteo: ____________________</p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

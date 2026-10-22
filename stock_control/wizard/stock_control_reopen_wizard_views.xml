@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="stock_control_reopen_wizard_view_form" model="ir.ui.view">
+        <field name="name">stock.control.reopen.wizard.form</field>
+        <field name="model">stock.control.reopen.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <p>El control vuelve a quedar editable. Al guardarlo de nuevo se generan movimientos de corrección
+                    solo por lo que cambie; los movimientos anteriores no se tocan.</p>
+                <group>
+                    <field name="inventory_id" readonly="1"/>
+                    <field name="reason" placeholder="Por qué se reabre el control"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Reabrir" class="btn-primary"/>
+                    <button string="Descartar" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

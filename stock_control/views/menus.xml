@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_stock_control_root"
+              name="Control de inventario"
+              web_icon="stock_control,static/description/icon.png"
+              groups="group_stock_control_user"
+              sequence="31">
+        <menuitem id="menu_stock_control_products" name="Productos"
+                  action="stock.product_template_action_product" sequence="10"/>
+        <menuitem id="menu_stock_control_quants" name="Existencias"
+                  action="stock.action_view_quants" sequence="20"/>
+        <menuitem id="menu_stock_control_manual_moves" name="Movimientos manuales"
+                  action="action_stock_control_manual_move" sequence="30"/>
+        <menuitem id="menu_stock_control_inventories" name="Controles de inventario"
+                  action="action_stock_control_inventory" sequence="40"/>
+        <menuitem id="menu_stock_control_audit" name="Auditoría"
+                  groups="group_stock_control_manager" sequence="50">
+            <menuitem id="menu_stock_control_audit_moves" name="Movimientos"
+                      action="action_stock_control_audit_moves" sequence="10"/>
+            <menuitem id="menu_stock_control_kardex" name="Ficha por producto"
+                      action="action_stock_control_kardex_wizard" sequence="20"/>
+            <menuitem id="menu_stock_control_differences" name="Diferencias de controles"
+                      action="action_stock_control_inventory_differences" sequence="30"/>
+        </menuitem>
+        <menuitem id="menu_stock_control_config" name="Configuración"
+                  groups="group_stock_control_manager" sequence="100">
+            <menuitem id="menu_stock_control_reasons" name="Motivos"
+                      action="action_stock_control_reason" sequence="10"/>
+            <menuitem id="menu_stock_control_settings" name="Ajustes"
+                      action="action_stock_control_settings" groups="base.group_system" sequence="20"/>
+        </menuitem>
+    </menuitem>
+</odoo>

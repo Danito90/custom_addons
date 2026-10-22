@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="stock_control_manual_move_view_list" model="ir.ui.view">
+        <field name="name">stock.control.manual.move.list</field>
+        <field name="model">stock.control.manual.move</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'cancel'" decoration-info="state == 'draft'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="move_type"/>
+                <field name="warehouse_id"/>
+                <field name="location_id" optional="show"/>
+                <field name="reason_id"/>
+                <field name="reversed_move_id" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'done'" decoration-info="state == 'draft'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="stock_control_manual_move_view_form" model="ir.ui.view">
+        <field name="name">stock.control.manual.move.form</field>
+        <field name="model">stock.control.manual.move</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" type="object" string="Confirmar" class="btn-primary"
+                            invisible="state != 'draft'"
+                            confirm="Al confirmar se mueve el stock y el movimiento ya no se puede modificar. ¿Confirmás?"/>
+                    <button name="action_reverse" type="object" string="Revertir" invisible="not can_reverse"
+                            confirm="Se va a crear y confirmar un movimiento inverso. ¿Confirmás?"/>
+                    <button name="action_cancel" type="object" string="Cancelar" invisible="state != 'draft'"/>
+                    <button name="action_draft" type="object" string="Volver a Borrador" invisible="state != 'cancel'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="move_type" widget="radio" options="{'horizontal': true}" readonly="state != 'draft'"/>
+                            <field name="warehouse_id" readonly="state != 'draft'" options="{'no_create': True}"/>
+                            <field name="location_id" readonly="state != 'draft'" options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="date" readonly="state != 'draft'"/>
+                            <field name="reason_id" readonly="state != 'draft'" options="{'no_create': True}"/>
+                            <field name="reversed_move_id" invisible="not reversed_move_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="can_reverse" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Productos" name="lines">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="product_id" options="{'no_create': True}"/>
+                                    <field name="quantity"/>
+                                    <field name="uom_id" groups="uom.group_uom"/>
+                                </list>
+                            </field>
+                            <field name="note" placeholder="Observación" readonly="state != 'draft'"/>
+                        </page>
+                        <page string="Movimientos de stock" name="moves" invisible="state != 'done'">
+                            <field name="move_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="reference"/>
+                                    <field name="product_id"/>
+                                    <field name="location_id"/>
+                                    <field name="location_dest_id"/>
+                                    <field name="quantity"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Reversiones" name="reversals" invisible="not reversal_ids">
+                            <field name="reversal_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="move_type"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="stock_control_manual_move_view_search" model="ir.ui.view">
+        <field name="name">stock.control.manual.move.search</field>
+        <field name="model">stock.control.manual.move</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="line_ids" string="Producto" filter_domain="[('line_ids.product_id', 'ilike', self)]"/>
+                <field name="warehouse_id"/>
+                <field name="reason_id"/>
+                <filter name="filter_in" string="Entradas" domain="[('move_type', '=', 'in')]"/>
+                <filter name="filter_out" string="Salidas" domain="[('move_type', '=', 'out')]"/>
+                <separator/>
+                <filter name="filter_draft" string="Borrador" domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_done" string="Confirmados" domain="[('state', '=', 'done')]"/>
+                <filter name="filter_cancel" string="Cancelados" domain="[('state', '=', 'cancel')]"/>
+                <separator/>
+                <filter name="filter_date" string="Fecha" date="date"/>
+                <group>
+                    <filter name="group_type" string="Tipo" context="{'group_by': 'move_type'}"/>
+                    <filter name="group_warehouse" string="Depósito" context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_reason" string="Motivo" context="{'group_by': 'reason_id'}"/>
+                    <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_stock_control_manual_move" model="ir.actions.act_window">
+        <field name="name">Movimientos manuales</field>
+        <field name="res_model">stock.control.manual.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="stock_control_manual_move_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Cargá una entrada o salida manual de stock</p>
+            <p>Cada movimiento lleva un motivo. Una vez confirmado no se modifica: se corrige con "Revertir".</p>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="stock_control_reason_view_list" model="ir.ui.view">
+        <field name="name">stock.control.reason.list</field>
+        <field name="model">stock.control.reason</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="move_type"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="stock_control_reason_view_search" model="ir.ui.view">
+        <field name="name">stock.control.reason.search</field>
+        <field name="model">stock.control.reason</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <filter name="filter_in" string="Entradas" domain="[('move_type', 'in', ['in', 'both'])]"/>
+                <filter name="filter_out" string="Salidas" domain="[('move_type', 'in', ['out', 'both'])]"/>
+                <separator/>
+                <filter name="filter_archived" string="Archivados" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_stock_control_reason" model="ir.actions.act_window">
+        <field name="name">Motivos</field>
+        <field name="res_model">stock.control.reason</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'active_test': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Creá un motivo de movimiento de stock</p>
+            <p>Los motivos se eligen al cargar entradas y salidas manuales.</p>
+        </field>
+    </record>
+</odoo>

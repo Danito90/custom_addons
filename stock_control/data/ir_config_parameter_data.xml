@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Comparar contra" en Al guardar al instalar. noupdate: después lo decide el administrador.
+     "Mostrar cantidad teórica en la planilla" usa el parámetro estándar stock.show_expected_quantity_count y no se toca. -->
+<odoo noupdate="1">
+    <record id="config_theoretical_mode" model="ir.config_parameter">
+        <field name="key">stock_control.theoretical_mode</field>
+        <field name="value">on_save</field>
+    </record>
+</odoo>

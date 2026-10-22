@@ -1,0 +1,17 @@
+id,name,model_id,group_id/id,operation,domain
+access_stock_control_reason_user,stock.control.reason user,stock.control.reason,group_stock_control_user,r,
+access_stock_control_reason_manager,stock.control.reason manager,stock.control.reason,group_stock_control_manager,crud,
+stock_control_reason_company_rule,stock.control.reason multi-company,stock.control.reason,,crud,"[('company_id', 'in', company_ids + [False])]"
+access_stock_control_manual_move_user,stock.control.manual.move user,stock.control.manual.move,group_stock_control_user,cru,
+access_stock_control_manual_move_manager,stock.control.manual.move manager,stock.control.manual.move,group_stock_control_manager,crud,
+access_stock_control_manual_move_draft_user,stock.control.manual.move user draft unlink,stock.control.manual.move,group_stock_control_user,d,"[('state', '=', 'draft')]"
+stock_control_manual_move_company_rule,stock.control.manual.move multi-company,stock.control.manual.move,,crud,"[('company_id', 'in', company_ids)]"
+access_stock_control_manual_move_line_user,stock.control.manual.move.line user,stock.control.manual.move.line,group_stock_control_user,crud,
+access_stock_control_inventory_user,stock.control.inventory user,stock.control.inventory,group_stock_control_user,cru,
+access_stock_control_inventory_manager,stock.control.inventory manager,stock.control.inventory,group_stock_control_manager,crud,
+access_stock_control_inventory_draft_user,stock.control.inventory user draft unlink,stock.control.inventory,group_stock_control_user,d,"[('state', '=', 'draft')]"
+stock_control_inventory_company_rule,stock.control.inventory multi-company,stock.control.inventory,,crud,"[('company_id', 'in', company_ids)]"
+access_stock_control_inventory_line_user,stock.control.inventory.line user,stock.control.inventory.line,group_stock_control_user,crud,
+access_stock_control_inventory_event_user,stock.control.inventory.event user,stock.control.inventory.event,group_stock_control_user,r,
+access_stock_control_reopen_wizard_manager,stock.control.reopen.wizard manager,stock.control.reopen.wizard,group_stock_control_manager,crud,
+access_stock_control_kardex_wizard_manager,stock.control.kardex.wizard manager,stock.control.kardex.wizard,group_stock_control_manager,crud,

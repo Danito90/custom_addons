@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="stock_control_inventory_view_list" model="ir.ui.view">
+        <field name="name">stock.control.inventory.list</field>
+        <field name="model">stock.control.inventory</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'cancel'" decoration-info="state == 'draft'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="warehouse_id"/>
+                <field name="category_ids" widget="many2many_tags"/>
+                <field name="theoretical_mode" optional="hide"/>
+                <field name="line_count" optional="show"/>
+                <field name="diff_line_count" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'done'" decoration-warning="state == 'reopened'"
+                       decoration-info="state in ('draft', 'in_progress')"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="stock_control_inventory_view_form" model="ir.ui.view">
+        <field name="name">stock.control.inventory.form</field>
+        <field name="model">stock.control.inventory</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_start" type="object" string="Iniciar conteo" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_print_sheet" type="object" string="Imprimir planilla"
+                            invisible="state not in ('in_progress', 'reopened')"/>
+                    <button name="action_save" type="object" string="Guardar control" class="btn-primary"
+                            invisible="state not in ('in_progress', 'reopened')"
+                            confirm="Al guardar se ajusta el stock de las líneas contadas y el control queda cerrado. Solo un administrador puede reabrirlo. ¿Confirmás?"/>
+                    <button name="action_print_differences" type="object" string="Informe de diferencias"
+                            invisible="state not in ('done', 'reopened')"/>
+                    <button name="action_reopen" type="object" string="Reabrir"
+                            invisible="state != 'done'" groups="stock_control.group_stock_control_manager"/>
+                    <button name="action_cancel" type="object" string="Cancelar"
+                            invisible="state not in ('draft', 'in_progress')"
+                            confirm="El control se cancela sin tocar el stock. ¿Confirmás?"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_moves" type="object" class="oe_stat_button" icon="fa-exchange"
+                                invisible="state not in ('done', 'reopened')"
+                                groups="stock_control.group_stock_control_manager">
+                            <span>Movimientos</span>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Guardado" invisible="state != 'done'"/>
+                    <widget name="web_ribbon" title="Reabierto" bg_color="text-bg-warning" invisible="state != 'reopened'"/>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="warehouse_id" readonly="state != 'draft'" options="{'no_create': True}"/>
+                            <field name="category_ids" widget="many2many_tags" readonly="state != 'draft'"
+                                   options="{'no_create': True}"/>
+                            <field name="include_child_categories" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="date" readonly="state not in ('draft', 'in_progress', 'reopened')"/>
+                            <field name="theoretical_mode" invisible="not theoretical_mode"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="line_count" invisible="state == 'draft'"/>
+                            <field name="counted_line_count" invisible="state == 'draft'"/>
+                            <field name="diff_line_count" invisible="state not in ('done', 'reopened')"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Conteo" name="lines" invisible="state == 'draft'">
+                            <field name="line_ids" readonly="state not in ('in_progress', 'reopened')">
+                                <list editable="bottom" decoration-muted="line_state == 'not_counted'"
+                                      decoration-danger="line_state == 'diff' and inventory_state != 'in_progress'">
+                                    <field name="warehouse_id" column_invisible="1"/>
+                                    <field name="company_id" column_invisible="1"/>
+                                    <field name="is_applied" column_invisible="1"/>
+                                    <field name="inventory_state" column_invisible="1"/>
+                                    <field name="location_id" options="{'no_create': True}" readonly="is_applied"/>
+                                    <field name="default_code"/>
+                                    <field name="product_id" options="{'no_create': True}" readonly="is_applied"/>
+                                    <field name="categ_id" optional="show"/>
+                                    <field name="uom_id" groups="uom.group_uom"/>
+                                    <field name="theoretical_qty" column_invisible="parent.state not in ('done', 'reopened')"/>
+                                    <field name="counted_qty"/>
+                                    <field name="is_counted" widget="boolean_toggle"/>
+                                    <field name="difference_qty" column_invisible="parent.state not in ('done', 'reopened')"/>
+                                    <!-- Mientras se cuenta no se muestran diferencias: el teórico todavía no es definitivo
+                                         (Al guardar) o está oculto (conteo ciego). -->
+                                    <field name="line_state" widget="badge" column_invisible="parent.state == 'in_progress'"
+                                           decoration-success="line_state == 'ok'" decoration-danger="line_state == 'diff'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Historial" name="events" invisible="not event_ids">
+                            <field name="event_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="event_type"/>
+                                    <field name="user_id"/>
+                                    <field name="reason"/>
+                                    <field name="adjusted_line_count"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="stock_control_inventory_view_search" model="ir.ui.view">
+        <field name="name">stock.control.inventory.search</field>
+        <field name="model">stock.control.inventory</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="warehouse_id"/>
+                <field name="category_ids"/>
+                <filter name="filter_open" string="Abiertos" domain="[('state', 'in', ['draft', 'in_progress', 'reopened'])]"/>
+                <filter name="filter_done" string="Guardados" domain="[('state', '=', 'done')]"/>
+                <filter name="filter_cancel" string="Cancelados" domain="[('state', '=', 'cancel')]"/>
+                <separator/>
+                <filter name="filter_date" string="Fecha" date="date"/>
+                <group>
+                    <filter name="group_warehouse" string="Depósito" context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                    <filter name="group_date" string="Fecha" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_stock_control_inventory" model="ir.actions.act_window">
+        <field name="name">Controles de inventario</field>
+        <field name="res_model">stock.control.inventory</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="stock_control_inventory_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Creá un control de inventario</p>
+            <p>Elegí depósito y categorías, iniciá el conteo, imprimí la planilla, cargá lo contado y guardá el control.</p>
+        </field>
+    </record>
+
+    <!-- Auditoría: diferencias de controles -->
+    <record id="stock_control_inventory_line_view_list_differences" model="ir.ui.view">
+        <field name="name">stock.control.inventory.line.list.differences</field>
+        <field name="model">stock.control.inventory.line</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" decoration-danger="line_state == 'diff'"
+                  decoration-muted="line_state == 'not_counted'">
+                <field name="inventory_id"/>
+                <field name="date"/>
+                <field name="warehouse_id"/>
+                <field name="location_id" optional="show"/>
+                <field name="default_code" optional="show"/>
+                <field name="product_id"/>
+                <field name="categ_id" optional="show"/>
+                <field name="theoretical_qty" sum="Total"/>
+                <field name="counted_qty" sum="Total"/>
+                <field name="difference_qty" sum="Total"/>
+                <field name="uom_id" groups="uom.group_uom" optional="show"/>
+                <field name="line_state" widget="badge"
+                       decoration-success="line_state == 'ok'" decoration-danger="line_state == 'diff'"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="stock_control_inventory_line_view_search_differences" model="ir.ui.view">
+        <field name="name">stock.control.inventory.line.search.differences</field>
+        <field name="model">stock.control.inventory.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="inventory_id"/>
+                <field name="product_id"/>
+                <field name="categ_id"/>
+                <field name="warehouse_id"/>
+                <filter name="filter_diff" string="Con diferencia" domain="[('line_state', '=', 'diff')]"/>
+                <filter name="filter_ok" string="Sin diferencia" domain="[('line_state', '=', 'ok')]"/>
+                <filter name="filter_not_counted" string="No contadas" domain="[('line_state', '=', 'not_counted')]"/>
+                <separator/>
+                <filter name="filter_date" string="Fecha" date="date"/>
+                <group>
+                    <filter name="group_inventory" string="Control" context="{'group_by': 'inventory_id'}"/>
+                    <filter name="group_warehouse" string="Depósito" context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_categ" string="Categoría" context="{'group_by': 'categ_id'}"/>
+                    <filter name="group_product" string="Producto" context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_stock_control_inventory_differences" model="ir.actions.act_window">
+        <field name="name">Diferencias de controles</field>
+        <field name="res_model">stock.control.inventory.line</field>
+        <field name="view_mode">list</field>
+        <field name="domain">[('inventory_state', 'in', ['done', 'reopened'])]</field>
+        <field name="context">{'search_default_filter_diff': 1}</field>
+        <field name="view_id" ref="stock_control_inventory_line_view_list_differences"/>
+        <field name="search_view_id" ref="stock_control_inventory_line_view_search_differences"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavía no hay controles guardados</p>
+        </field>
+    </record>
+</odoo>

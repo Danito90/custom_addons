@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_kardex">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="data" t-value="kardex[doc.id]"/>
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h3>Ficha por producto</h3>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Producto:</strong> <span t-out="doc.product_id.display_name"/><br/>
+                                <strong>Unidad:</strong> <span t-out="doc.product_id.uom_id.name"/>
+                            </div>
+                            <div class="col-6">
+                                <strong>Depósito:</strong>
+                                <span t-if="doc.warehouse_id" t-field="doc.warehouse_id"/>
+                                <span t-else="">Todos</span><br/>
+                                <strong>Período:</strong> <span t-field="doc.date_from"/> al <span t-field="doc.date_to"/>
+                            </div>
+                        </div>
+                        <table class="table table-sm o_main_table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Referencia</th>
+                                    <th>Origen</th>
+                                    <th>Motivo</th>
+                                    <th class="text-end">Entrada</th>
+                                    <th class="text-end">Salida</th>
+                                    <th class="text-end">Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="fw-bold">
+                                    <td colspan="6">Saldo inicial</td>
+                                    <td class="text-end"><span t-out="data['initial']" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                                </tr>
+                                <tr t-foreach="data['rows']" t-as="row">
+                                    <t t-set="move" t-value="row['move']"/>
+                                    <td><span t-out="move.date" t-options="{'widget': 'datetime'}"/></td>
+                                    <td><span t-out="move.reference or ''"/></td>
+                                    <td><span t-field="move.stock_control_origin"/></td>
+                                    <td><span t-out="move.stock_control_reason_text or ''"/></td>
+                                    <td class="text-end"><t t-if="row['qty_in']"><span t-out="row['qty_in']" t-options="{'widget': 'float', 'precision': 2}"/></t></td>
+                                    <td class="text-end"><t t-if="row['qty_out']"><span t-out="row['qty_out']" t-options="{'widget': 'float', 'precision': 2}"/></t></td>
+                                    <td class="text-end"><span t-out="row['balance']" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                                </tr>
+                                <tr class="fw-bold">
+                                    <td colspan="4">Totales y saldo final</td>
+                                    <td class="text-end"><span t-out="data['total_in']" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                                    <td class="text-end"><span t-out="data['total_out']" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                                    <td class="text-end"><span t-out="data['final']" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

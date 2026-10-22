@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_count_sheet" model="ir.actions.report">
+        <field name="name">Planilla de conteo</field>
+        <field name="model">stock.control.inventory</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">stock_control.report_count_sheet</field>
+        <field name="print_report_name">'Planilla de conteo - %s' % object.name</field>
+        <field name="binding_model_id" ref="model_stock_control_inventory"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_differences" model="ir.actions.report">
+        <field name="name">Informe de diferencias</field>
+        <field name="model">stock.control.inventory</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">stock_control.report_differences</field>
+        <field name="print_report_name">'Informe de diferencias - %s' % object.name</field>
+        <field name="binding_model_id" ref="model_stock_control_inventory"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_kardex" model="ir.actions.report">
+        <field name="name">Ficha por producto</field>
+        <field name="model">stock.control.kardex.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">stock_control.report_kardex</field>
+        <field name="print_report_name">'Ficha por producto - %s' % object.product_id.display_name</field>
+    </record>
+</odoo>

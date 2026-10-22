@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_differences">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h3>Informe de diferencias <span t-field="doc.name"/></h3>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Depósito:</strong> <span t-field="doc.warehouse_id"/><br/>
+                                <strong>Categorías:</strong> <span t-out="', '.join(doc.category_ids.mapped('complete_name'))"/><br/>
+                                <strong>Comparar contra:</strong> <span t-field="doc.theoretical_mode"/>
+                            </div>
+                            <div class="col-6">
+                                <strong>Fecha:</strong> <span t-field="doc.date"/><br/>
+                                <strong>Estado:</strong> <span t-field="doc.state"/><br/>
+                                <strong>Líneas:</strong> <span t-out="doc.line_count"/>
+                                · contadas <span t-out="doc.counted_line_count"/>
+                                · con diferencia <span t-out="doc.diff_line_count"/>
+                            </div>
+                        </div>
+                        <t t-foreach="groups[doc.id]" t-as="group">
+                            <t t-set="location" t-value="group[0]"/>
+                            <t t-set="categ" t-value="group[1]"/>
+                            <t t-set="lines" t-value="group[2]"/>
+                            <h6 class="mt-3">
+                                <span t-out="location.complete_name"/> · <span t-out="categ.complete_name"/>
+                            </h6>
+                            <table class="table table-sm o_main_table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th class="text-end">Teórico</th>
+                                        <th class="text-end">Contado</th>
+                                        <th class="text-end">Diferencia</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="lines" t-as="line">
+                                        <td><span t-out="line.default_code or ''"/></td>
+                                        <td><span t-out="line.product_id.name"/></td>
+                                        <td><span t-out="line.uom_id.name"/></td>
+                                        <td class="text-end"><span t-field="line.theoretical_qty"/></td>
+                                        <td class="text-end"><t t-if="line.is_counted"><span t-field="line.counted_qty"/></t></td>
+                                        <td class="text-end"><t t-if="line.is_counted"><span t-field="line.difference_qty"/></t></td>
+                                        <td><span t-field="line.line_state"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                        <h5 class="mt-4">Historial</h5>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Evento</th>
+                                    <th>Usuario</th>
+                                    <th>Motivo</th>
+                                    <th class="text-end">Líneas ajustadas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="events[doc.id]" t-as="event">
+                                    <td><span t-field="event.date"/></td>
+                                    <td><span t-field="event.event_type"/></td>
+                                    <td><span t-field="event.user_id"/></td>
+                                    <td><span t-field="event.reason"/></td>
+                                    <td class="text-end"><span t-out="event.adjusted_line_count"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Listado de Compras (/odoo/purchase-products): la columna de existencia se llama "Stock" y se muestra. -->
+    <record id="product_template_list_view_purchasable_stock_control" model="ir.ui.view">
+        <field name="name">product.template.list.purchasable.stock.control</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_list_view_purchasable"/>
+        <field name="arch" type="xml">
+            <field name="qty_available" position="attributes">
+                <attribute name="string">Stock</attribute>
+                <attribute name="optional">show</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="product_template_form_view_stock_control" model="ir.ui.view">
+        <field name="name">product.template.form.stock.control</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_stock_control_audit_moves" type="object" string="Movimientos"
+                        class="oe_stat_button" icon="fa-history"
+                        invisible="not is_storable or not id"
+                        groups="stock_control.group_stock_control_manager"/>
+            </div>
+        </field>
+    </record>
+</odoo>

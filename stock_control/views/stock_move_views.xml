@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="stock_move_view_list_stock_control_audit" model="ir.ui.view">
+        <field name="name">stock.move.list.stock.control.audit</field>
+        <field name="model">stock.move</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" default_order="date desc, id desc">
+                <field name="date" string="Fecha"/>
+                <field name="reference" string="Referencia"/>
+                <field name="product_id" string="Producto"/>
+                <field name="stock_control_categ_id" optional="show"/>
+                <field name="stock_control_warehouse_id" optional="show"/>
+                <field name="location_id" string="Desde" optional="show"/>
+                <field name="location_dest_id" string="Hacia" optional="show"/>
+                <field name="stock_control_signed_qty" sum="Total"
+                       decoration-success="stock_control_signed_qty &gt; 0"
+                       decoration-danger="stock_control_signed_qty &lt; 0"/>
+                <field name="uom_id" string="Unidad" groups="uom.group_uom" optional="show"/>
+                <field name="stock_control_origin"/>
+                <field name="stock_control_reason_text" optional="show"/>
+                <field name="stock_control_done_user_id" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="stock_move_view_search_stock_control_audit" model="ir.ui.view">
+        <field name="name">stock.move.search.stock.control.audit</field>
+        <field name="model">stock.move</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id" string="Producto"/>
+                <field name="reference" string="Referencia"/>
+                <field name="stock_control_categ_id"/>
+                <field name="stock_control_warehouse_id"/>
+                <field name="stock_control_reason_text"/>
+                <field name="stock_control_done_user_id"/>
+                <field name="location_id" string="Ubicación" filter_domain="['|', ('location_id', 'child_of', self), ('location_dest_id', 'child_of', self)]"/>
+                <filter name="origin_purchase" string="Compras" domain="[('stock_control_origin', '=', 'purchase')]"/>
+                <filter name="origin_sale" string="Ventas" domain="[('stock_control_origin', '=', 'sale')]"/>
+                <filter name="origin_manual" string="Movimientos manuales" domain="[('stock_control_origin', '=', 'manual')]"/>
+                <filter name="origin_inventory" string="Controles de inventario" domain="[('stock_control_origin', '=', 'inventory')]"/>
+                <filter name="origin_scrap" string="Desechos" domain="[('stock_control_origin', '=', 'scrap')]"/>
+                <filter name="origin_other" string="Otros" domain="[('stock_control_origin', '=', 'other')]"/>
+                <separator/>
+                <filter name="incoming" string="Entradas" domain="[('stock_control_signed_qty', '&gt;', 0)]"/>
+                <filter name="outgoing" string="Salidas" domain="[('stock_control_signed_qty', '&lt;', 0)]"/>
+                <separator/>
+                <filter name="filter_date" string="Fecha" date="date"/>
+                <group>
+                    <filter name="group_origin" string="Origen" context="{'group_by': 'stock_control_origin'}"/>
+                    <filter name="group_warehouse" string="Depósito" context="{'group_by': 'stock_control_warehouse_id'}"/>
+                    <filter name="group_categ" string="Categoría" context="{'group_by': 'stock_control_categ_id'}"/>
+                    <filter name="group_product" string="Producto" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_reason" string="Motivo" context="{'group_by': 'stock_control_reason_text'}"/>
+                    <filter name="group_user" string="Validado por" context="{'group_by': 'stock_control_done_user_id'}"/>
+                    <filter name="group_date" string="Fecha" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_stock_control_audit_moves" model="ir.actions.act_window">
+        <field name="name">Auditoría de movimientos</field>
+        <field name="res_model">stock.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'done')]</field>
+        <field name="context">{'create': False}</field>
+        <field name="view_ids" eval="[Command.clear(),
+            Command.create({'view_mode': 'list', 'view_id': ref('stock_move_view_list_stock_control_audit')}),
+            Command.create({'view_mode': 'form', 'view_id': ref('stock.view_move_form')})]"/>
+        <field name="search_view_id" ref="stock_move_view_search_stock_control_audit"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavía no hay movimientos de stock hechos</p>
+        </field>
+    </record>
+</odoo>

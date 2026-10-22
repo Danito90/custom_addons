@@ -1,6 +1,6 @@
 # custom_addons
 
-Módulos propios para **Odoo 20.0 Community** que suman lo que el estándar no trae para la gestión comercial: estado de cuenta de clientes y proveedores, apps dedicadas a Clientes y Proveedores, y registro de visitas a clientes.
+Módulos propios para **Odoo 20.0 Community** que suman lo que el estándar no trae para la gestión comercial: estado de cuenta de clientes y proveedores, apps dedicadas a Clientes y Proveedores, registro de visitas a clientes y control de inventario.
 
 ## Módulos
 
@@ -10,6 +10,7 @@ Módulos propios para **Odoo 20.0 Community** que suman lo que el estándar no t
 | [customer_visit](customer_visit/) | Visitas a clientes | Planificar y registrar visitas a clientes, con resultado, próxima visita, chatter y actividades. | `mail` |
 | [customer_management](customer_management/README.md) | Clientes (app) | Listado de clientes con asignación de vendedores, estado de cuenta, comprobantes, pagos recibidos, vencidos y visitas. Los vendedores pueden ver solo sus clientes. | `customer_account_statement`, `customer_visit` |
 | [supplier_management](supplier_management/README.md) | Proveedores (app) | Listado de proveedores, estado de cuenta de proveedores, comprobantes, pagos realizados, vencidos y órdenes de compra. | `customer_account_statement`, `purchase` |
+| [stock_control](stock_control/README.md) | Control de inventario (app) | Entradas y salidas de stock con motivo, controles de inventario con planilla de conteo y cierre (solo un administrador los reabre), y auditoría de movimientos, ficha por producto y diferencias. | `stock`, `purchase_stock`, `sale_stock` |
 
 Cada módulo tiene su propio `README.md` con el detalle de funciones, configuración, permisos y cambios en la base de datos.
 
@@ -24,6 +25,9 @@ graph TD
     customer_visit --> customer_management
     customer_account_statement --> supplier_management
     purchase --> supplier_management
+    stock --> stock_control
+    purchase_stock --> stock_control
+    sale_stock --> stock_control
 ```
 
 ## Estructura del repositorio
@@ -33,6 +37,7 @@ custom_addons/
 ├── customer_account_statement/   # un módulo por carpeta
 ├── customer_management/
 ├── customer_visit/
+├── stock_control/
 ├── supplier_management/
 ├── specs/                        # especificaciones funcionales (SPEC 01, 02, ...)
 ├── AGENTS.md                     # reglas para agentes y convenciones del repo
@@ -97,7 +102,7 @@ Desde la línea de comandos, con `-i` y el nombre técnico. Odoo instala las dep
 python odoo-bin -r odoo_user -w <password> --addons-path=addons,..\custom_addons -d <base> -i customer_management --stop-after-init
 
 # Todos
-python odoo-bin -r odoo_user -w <password> --addons-path=addons,..\custom_addons -d <base> -i customer_account_statement,customer_visit,customer_management,supplier_management --stop-after-init
+python odoo-bin -r odoo_user -w <password> --addons-path=addons,..\custom_addons -d <base> -i customer_account_statement,customer_visit,customer_management,supplier_management,stock_control --stop-after-init
 ```
 
 O desde la interfaz:

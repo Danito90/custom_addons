@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_groups_privilege_stock_control" model="res.groups.privilege">
+        <field name="name">Control de inventario</field>
+        <field name="category_id" ref="base.module_category_supply_chain"/>
+    </record>
+
+    <!-- Usuario implica el usuario de Inventario para crear movimientos de stock con los permisos estándar. -->
+    <record id="group_stock_control_user" model="res.groups">
+        <field name="name">Usuario</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_stock_control"/>
+        <field name="implied_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+    </record>
+
+    <record id="group_stock_control_manager" model="res.groups">
+        <field name="name">Administrador</field>
+        <field name="sequence">20</field>
+        <field name="privilege_id" ref="res_groups_privilege_stock_control"/>
+        <field name="implied_ids" eval="[(4, ref('group_stock_control_user'))]"/>
+        <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+</odoo>

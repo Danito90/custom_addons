@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Secuencias base, sin empresa. La primera vez que una empresa numera, el código crea una copia
+     propia de esa empresa (_stock_control_next_name), así cada empresa tiene su numeración. -->
+<odoo noupdate="1">
+    <record id="seq_manual_move" model="ir.sequence">
+        <field name="name">Movimiento manual de stock</field>
+        <field name="code">stock_control.manual_move</field>
+        <field name="prefix">MM/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="use_date_range" eval="True"/>
+        <field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_inventory" model="ir.sequence">
+        <field name="name">Control de inventario</field>
+        <field name="code">stock_control.inventory</field>
+        <field name="prefix">CI/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="use_date_range" eval="True"/>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

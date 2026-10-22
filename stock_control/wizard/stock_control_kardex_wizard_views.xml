@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="stock_control_kardex_wizard_view_form" model="ir.ui.view">
+        <field name="name">stock.control.kardex.wizard.form</field>
+        <field name="model">stock.control.kardex.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group>
+                        <field name="product_id" options="{'no_create': True}"/>
+                        <field name="warehouse_id" options="{'no_create': True}" placeholder="Todos los depósitos"/>
+                        <field name="company_id" invisible="1"/>
+                    </group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_print" type="object" string="Imprimir" class="btn-primary"/>
+                    <button name="action_view_moves" type="object" string="Ver movimientos"/>
+                    <button string="Descartar" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stock_control_kardex_wizard" model="ir.actions.act_window">
+        <field name="name">Ficha por producto</field>
+        <field name="res_model">stock.control.kardex.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
