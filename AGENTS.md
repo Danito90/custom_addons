@@ -41,6 +41,18 @@ Antes de escribir algo en el README, verificarlo en el código: nombres de menú
 
 Ejemplo de referencia: [customer_account_statement/README.md](customer_account_statement/README.md).
 
+## Regla obligatoria: README.md principal actualizado
+
+El [README.md](README.md) de la raíz es el índice del repo y **tiene que estar siempre al día** con los módulos que existen. En la misma tarea en que se crea, renombra, borra o cambia un módulo, se revisa y actualiza:
+
+- **Tabla "Módulos":** una fila por módulo, con enlace a su README, nombre, qué resuelve y dependencias (iguales al `depends` del `__manifest__.py`).
+- **Diagrama de dependencias** (`mermaid`): una flecha por cada dependencia de cada módulo.
+- **Estructura del repositorio:** una línea por carpeta de módulo.
+- **Comando de instalación de "Todos"** (`-i ...`): todos los módulos, en orden de dependencias.
+- **Párrafo de introducción** y **Requisitos** (por ejemplo, si un módulo empieza a usar librerías de Python externas).
+
+Una tarea que agrega o cambia un módulo no está terminada si el README principal quedó desactualizado.
+
 ## Regla obligatoria: cambios en la base de datos
 
 Todo lo que un módulo crea o modifica en la base **se documenta en el `README.md` del módulo**, en la sección **"Base de datos"**, que incluye:
@@ -83,4 +95,5 @@ Si no usa librerías externas, no se crea `requirements.txt`. No se instalan paq
 
 1. Actualizar el módulo en la base con `-u <modulo> --stop-after-init` y revisar que el log no tenga `ERROR` ni `WARNING` nuevos.
 2. Actualizar el `README.md` del módulo, incluida la sección "Base de datos" y la línea `Base de datos:` del historial (ver reglas obligatorias).
-3. Informar al usuario los archivos cambiados, los comandos corridos contra la base y los cambios en la base.
+3. Revisar y actualizar el `README.md` principal (tabla de módulos, dependencias, estructura y comando de instalación).
+4. Informar al usuario los archivos cambiados, los comandos corridos contra la base y los cambios en la base.
